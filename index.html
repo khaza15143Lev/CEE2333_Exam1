@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exam 1 Practice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f6f4ee;
+    --ink:#1c3145;
+    --line:#c7d3dc;
+    --grid:#dfe7ee;
+    --accent:#2f5f52;   /* correct */
+    --wrong:#a3402f;    /* incorrect */
+    --tag:#5c7285;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      linear-gradient(var(--grid) 1px, transparent 1px) 0 0/28px 28px,
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0/28px 28px,
+      var(--paper);
+    color:var(--ink);
+    font-family:"IBM Plex Serif", serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:36px 18px 60px;
+  }
+  .sheet{
+    width:100%;
+    max-width:680px;
+  }
+  .titleblock{
+    border:1.5px solid var(--ink);
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    font-family:"IBM Plex Mono", monospace;
+    font-size:11px;
+    letter-spacing:.02em;
+    color:var(--tag);
+    margin-bottom:22px;
+  }
+  .titleblock div{
+    padding:8px 12px;
+    border-right:1px solid var(--line);
+  }
+  .titleblock div:last-child{border-right:none;}
+  .titleblock b{
+    display:block;
+    color:var(--ink);
+    font-size:13px;
+    margin-top:2px;
+  }
+  h1{
+    font-size:28px;
+    font-weight:600;
+    margin:0 0 4px;
+    line-height:1.2;
+  }
+  .subhead{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:12.5px;
+    color:var(--tag);
+    margin:0 0 22px;
+    line-height:1.5;
+  }
+
+  /* Main (page-level) tabs: Summary / Problem 1 (Problems 2-3 to come later) */
+  .main-tab-bar{
+    display:flex;
+    gap:0;
+    margin-bottom:22px;
+    flex-wrap:wrap;
+  }
+  .main-tab-bar button{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:12.5px;
+    letter-spacing:.02em;
+    background:transparent;
+    color:var(--tag);
+    border:1.5px solid var(--ink);
+    border-right-width:0;
+    padding:10px 16px;
+    cursor:pointer;
+  }
+  .main-tab-bar button:last-child{border-right-width:1.5px;}
+  .main-tab-bar button.active{
+    background:var(--ink);
+    color:var(--paper);
+  }
+  .main-tab-content{display:none;}
+  .main-tab-content.active{display:block;}
+
+  .summaryBox{
+    border:1.5px solid var(--ink);
+    padding:22px 26px;
+    background:rgba(255,255,255,.4);
+  }
+  .summaryRow{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    border-bottom:1px dashed var(--line);
+    padding:10px 0;
+    font-family:"IBM Plex Mono", monospace;
+    font-size:14px;
+  }
+  .summaryRow:last-child{border-bottom:none;}
+  .summaryRow b{font-size:20px;}
+  .summaryHint{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:12.5px;
+    color:var(--tag);
+    margin-top:16px;
+    line-height:1.6;
+  }
+  .codeBox{
+    border:1.5px dashed var(--ink);
+    padding:18px 20px;
+    margin-top:20px;
+    background:rgba(255,255,255,.5);
+  }
+  .codeBox h3{
+    font-size:15px;
+    margin:0 0 6px;
+  }
+  .codeBox .codeNote{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:12px;
+    color:var(--tag);
+    line-height:1.6;
+    margin:0 0 14px;
+  }
+  .codeBox .codeNote b{color:var(--ink);}
+  .codeRow{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-bottom:10px;
+  }
+  .codeRow input[type="text"]{
+    flex:1;
+    min-width:180px;
+    font-family:"IBM Plex Mono", monospace;
+    font-size:12.5px;
+    padding:8px 10px;
+    border:1.5px solid var(--line);
+    background:var(--paper);
+    color:var(--ink);
+  }
+  .codeBtn{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:12.5px;
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    padding:9px 14px;
+    cursor:pointer;
+    letter-spacing:.02em;
+    white-space:nowrap;
+  }
+  .codeBtn.secondary{
+    background:transparent;
+    border:1.5px solid var(--ink);
+    color:var(--ink);
+  }
+  .codeStatus{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:12px;
+    margin-top:8px;
+    display:none;
+  }
+  .codeStatus.show{display:block;}
+  .codeStatus.ok{color:var(--accent);}
+  .codeStatus.err{color:var(--wrong);}
+
+  .progressRow{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:10px;
+    font-family:"IBM Plex Mono", monospace;
+    font-size:12.5px;
+    color:var(--tag);
+  }
+  .progressBar{
+    height:3px;
+    background:var(--line);
+    border-radius:0;
+    margin-bottom:26px;
+    overflow:hidden;
+  }
+  .progressFill{
+    height:100%;
+    background:var(--ink);
+    transition:width .3s ease;
+  }
+  .card{
+    border:1.5px solid var(--ink);
+    padding:26px 26px 22px;
+    background:rgba(255,255,255,.4);
+  }
+  .question{
+    font-size:18px;
+    line-height:1.5;
+    margin:0 0 20px;
+  }
+  .choices{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .choice{
+    text-align:left;
+    border:1.5px solid var(--line);
+    background:transparent;
+    color:var(--ink);
+    font-family:"IBM Plex Serif", serif;
+    font-size:15px;
+    line-height:1.4;
+    padding:12px 14px;
+    cursor:pointer;
+    border-radius:0;
+  }
+  .choice .rich, .question .rich{
+    display:inline-flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:0;
+  }
+  .mtx{
+    display:inline-flex;
+    align-items:stretch;
+    vertical-align:middle;
+    margin:3px 4px;
+  }
+  .mtx .bside{
+    width:5px;
+    border-top:1.6px solid currentColor;
+    border-bottom:1.6px solid currentColor;
+    flex:0 0 auto;
+  }
+  .mtx .bside.l{border-left:1.6px solid currentColor;}
+  .mtx .bside.r{border-right:1.6px solid currentColor;}
+  .mtx .cells{
+    display:grid;
+    gap:3px 14px;
+    padding:4px 8px;
+    align-items:center;
+    justify-items:center;
+  }
+  .mtx .cells span{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:13.5px;
+    white-space:nowrap;
+    line-height:1.3;
+  }
+  .choice:hover:not(:disabled){
+    border-color:var(--ink);
+  }
+  .choice:disabled{cursor:default;}
+  .choice.correct{
+    border-color:var(--accent);
+    background:rgba(47,95,82,.1);
+    color:var(--accent);
+  }
+  .choice.wrong{
+    border-color:var(--wrong);
+    background:rgba(163,64,47,.08);
+    color:var(--wrong);
+  }
+  .feedback{
+    margin-top:18px;
+    font-family:"IBM Plex Mono", monospace;
+    font-size:13px;
+    line-height:1.55;
+    padding-top:14px;
+    border-top:1px dashed var(--line);
+    display:none;
+  }
+  .feedback.show{display:block;}
+  .feedback .label{
+    font-weight:600;
+    letter-spacing:.02em;
+  }
+  .feedback.isCorrect .label{color:var(--accent);}
+  .feedback.isWrong .label{color:var(--wrong);}
+  .controls{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:22px;
+  }
+  .nextBtn{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:13px;
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    padding:10px 18px;
+    cursor:pointer;
+    letter-spacing:.02em;
+  }
+  .nextBtn:disabled{
+    background:var(--line);
+    color:#8b9aa6;
+    cursor:default;
+  }
+  .done{
+    text-align:center;
+    padding:40px 26px;
+  }
+  .done .big{
+    font-size:20px;
+    font-family:"IBM Plex Mono", monospace;
+    color:var(--tag);
+    margin:14px 0 4px;
+  }
+  .done .bigNum{
+    font-size:48px;
+    font-weight:600;
+    margin:4px 0 18px;
+  }
+  .restart{
+    margin-top:10px;
+    font-family:"IBM Plex Mono", monospace;
+    font-size:13px;
+    background:transparent;
+    border:1.5px solid var(--ink);
+    color:var(--ink);
+    padding:10px 18px;
+    cursor:pointer;
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="titleblock">
+    <div>COURSE<b>CEE 2333</b></div>
+    <div>SET<b>Exam 1 Practice</b></div>
+    <div>ITEMS<b id="tbCount">—</b></div>
+  </div>
+
+  <h1>Exam 1 Practice</h1>
+  <p class="subhead">Exam 1 will consist of several parts. This page currently covers Problem 1: practice questions covering the topics on that part of the exam. Practice problems for the other parts will be added here later.</p>
+
+  <div class="main-tab-bar" id="main-tab-bar">
+    <button class="active" onclick="switchMainTab('summary')">Summary</button>
+    <button onclick="switchMainTab('p1')">Problem 1: Practice Questions</button>
+  </div>
+
+  <div class="main-tab-content active" id="main-tab-summary">
+    <div class="summaryBox">
+      <div class="summaryRow"><span>Questions tried</span><b id="sum-tried">0</b></div>
+      <div class="summaryRow"><span>Correct answers</span><b id="sum-correct">0</b></div>
+      <p class="summaryHint">Switch to the Problem 1 tab above to work through the questions. This page only tracks how many you've tried and how many you've gotten right — it does not compute a total score.</p>
+
+      <div class="codeBox">
+        <h3>Get Your Submission Code</h3>
+        <p class="codeNote"><b>This code is not graded and is not a submission for credit.</b> It exists purely so you can pick this practice session back up later — it saves your place in the question order along with your tried/correct counts. Paste it back in below any time to resume exactly where you left off.</p>
+        <div class="codeRow">
+          <button class="codeBtn" onclick="generateResumeCode()">Generate Code</button>
+          <input type="text" id="codeOutput" readonly placeholder="Your code will appear here…">
+          <button class="codeBtn secondary" onclick="copyResumeCode()">Copy</button>
+        </div>
+        <div class="codeRow">
+          <input type="text" id="codeInput" placeholder="Paste a previous code here to resume…">
+          <button class="codeBtn secondary" onclick="resumeFromCode()">Resume</button>
+        </div>
+        <p class="codeStatus" id="codeStatus"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-tab-content" id="main-tab-p1">
+    <div id="quizArea"></div>
+  </div>
+
+</div>
+
+<script>
+const QUESTIONS = [
+  {topic:"Intro + Springs", q:"A network of 4 nodes, each with one axial (1D) degree of freedom, assembles to a 4×4 global stiffness matrix [K]. If that same 4-node network were instead modeled as a 2D truss with 2 translational DOFs per node, what size would the assembled [K] be?", choices:["4 × 4","8 × 8","16 × 16","2 × 2"], correct:1},
+  {topic:"Matrices + Springs", q:"The stiffness matrix entry K_ij is defined as the force that appears at DOF i when a unit displacement is imposed at DOF j, with every other DOF held fixed. Using the sign convention F1 = k(u1 − u2), F2 = k(u2 − u1) for a 1D spring element [[k, −k], [−k, k]], what does the off-diagonal entry k12 = −k mean?", choices:["A unit force applied at node 2 produces a unit displacement at node 1.","Imposing a unit displacement at node 1 while node 2 is held fixed produces a force of +k at node 2.","Imposing a unit displacement at node 2 while node 1 is held fixed produces a force of −k at node 1 — by F1 = k(u1 − u2) = −k — i.e., a leftward force at node 1 that resists the element's stretch.","k12 is a diagonal entry relating force and displacement at the same node."], correct:2},
+  {topic:"Matrices + Springs", q:"True or False: A nonzero matrix can multiply a nonzero vector and give a zero result — [A][B] = [0] does not imply either matrix is zero. This is exactly why an unconstrained (unsupported) structural model cannot be solved: a nonzero stiffness matrix multiplied by a nonzero rigid-body displacement pattern (such as a uniform translation of every node) produces zero net force, meaning the stiffness matrix is singular. A restrained spring system demonstrates exactly this — every row of its un-restrained [K] sums to zero, so [K]{1,1,…,1}^T = {0} for the nonzero all-ones rigid-body shift.", choices:["True","False"], correct:0},
+  {topic:"Intro + Matrices + Springs", q:"When assembling two 1D spring elements in series (nodes 1–2–3, stiffnesses k1 and k2) by expanding each 2×2 element matrix to 3×3 (padding with zeros) and adding them entrywise, what is the diagonal entry of the assembled [K] at the shared node (row 2, column 2)?", choices:["k1 + k2","k1 − k2","k1 · k2","|k1 − k2|"], correct:0},
+  {topic:"Intro + Springs", q:"Before any support is applied, why exactly is the assembled stiffness matrix [K] of a structure unsolvable?", choices:["The system is unsolvable because [K] is not symmetric before supports are added.","Before any support is applied, every row of [K] sums to zero, so the rigid-body translation vector {1,1,1,1}^T satisfies [K]{1,1,1,1}^T = {0}; a nonzero vector in the null space means no inverse exists, and removing a fixed DOF's row/column eliminates that mode, leaving an invertible reduced matrix.","The system is unsolvable because no loads have been applied at interior nodes.","The system is unsolvable because supports add extra elements to the mesh."], correct:1},
+  {topic:"Intro + Springs", q:"True or False: The core stiffness-method logic used for 1D spring/rod systems carries over unchanged to 2D trusses and frames — including keeping every element matrix exactly 2×2, since only the physical meaning of k changes, never its size.", choices:["True","False"], correct:1},
+  {topic:"Matrices + Springs", q:"Matrix multiplication is generally not commutative — getting the order wrong in a transformation such as [k]_global = [T]^T[k]_local[T] silently produces the wrong physical orientation. At the same time, assembling a global stiffness matrix via [K] = Σ_e [k]^(e) is described as an operation where \"the order of assembly never matters.\" Which statement resolves this apparent conflict?", choices:["Both operations are non-commutative, so the order-independence claim is mistaken.","That order-independence claim applies only to trusses, not to springs.","There is no conflict: assembly is entrywise matrix ADDITION, which is commutative; the non-commutativity concern applies to matrix MULTIPLICATION, which governs order-sensitive transformations such as [T]^T[k][T] — two different operations.","Assembly is itself matrix multiplication, so the order of assembly does matter."], correct:2},
+  {topic:"Intro + Springs", q:"The number of degrees of freedom (DOFs) at a node depends on the element type and the problem's dimensionality. In a 1D spring/rod system, \"node\" and \"degree of freedom\" happen to coincide (one DOF per node). In a 2D truss or frame, however, one DOF at a node can be free while another DOF at that same node is restrained — for example, a roller support that fixes one translational DOF but leaves the other free. Which statement follows from this?", choices:["A support always constrains every DOF at a node.","In 2D and 3D trusses the number of DOFs per node remains one.","The complementary known/unknown assignment (prescribed displacement vs. prescribed force) belongs to the degree of freedom, not to the node — a roller fixes one translational DOF while the other at the same node stays free.","Roller supports cannot be modeled because FEM nodes must be fully fixed."], correct:2},
+  {topic:"Intro + Matrices", q:"True or False: The finite element method produces the exact closed-form analytical solution of the governing PDE, because discretizing the domain does not introduce any approximation — solving [K]{u} = {F} recovers exactly the same solution as solving the original PDE directly.", choices:["True","False"], correct:1},
+  {topic:"Matrices + Springs", q:"The transpose operation appears in FEM in two prominent roles: building [k] = ∫[B]^T[D][B] dV, and rotating a local stiffness matrix into global coordinates via [T]^T[k][T] — with the order of these products mattering. Yet a 1D spring/rod system can be assembled directly, with no [T] or [B] matrix appearing anywhere. Which statement accounts for the difference?", choices:["The spring element matrix is obtained as [T]^T[k]_local[T] with [T] = [I], so transposes are essential to the derivation.","The spring system implicitly uses [T]^T[k][T] during assembly but simply omits [T] from the notation.","In a 1D spring/rod system every element is aligned with the single global axis and [k]^(e) is already symmetric, so no rotational transformation or transpose step is needed; transpose-based products such as [T]^T[k][T] and [B]^T[D][B] only become necessary for non-collinear 2D/3D elements.","The transpose is never used in FEM at all."], correct:2},
+  {topic:"Intro + Springs", q:"A 1D spring/rod element has exactly 2 nodal DOFs (one axial translation at each end), so its stiffness matrix [k]^(e) is 2×2, indexed by local nodes 1 and 2. During assembly, a \"location vector\" maps each local node pair to its corresponding global DOF positions — e.g., an element connecting global nodes 2 and 3 would place its entries at global rows/columns 2 and 3. Which statement correctly explains why [k]^(e) is 2×2?", choices:["Because a 1D spring element has exactly 2 nodal DOFs (one axial translation at each end), its [k]^(e) is a 2×2 matrix whose rows/columns are indexed by local nodes 1 and 2; the location vector maps each local pair (α, β) to global positions (ℓ_α, ℓ_β) — e.g., ℓ^(2) = {2, 3} places element 2's entries at global rows/columns 2 and 3.","The 2×2 size is caused by the number of elements in the structure, not by the nodes.","Location vectors replace element stiffness matrices rather than mapping them into [K].","A 1D element has 1 element DOF in total, so [k]^(e) is a 1×1 matrix."], correct:0},
+  {topic:"Intro + Matrices", q:"True or False: A stiffness matrix [K] always has an inverse regardless of whether the structure is properly supported, because any square matrix is automatically invertible as long as its dimensions match.", choices:["True","False"], correct:1},
+  {topic:"Matrices + Springs", q:"A matrix is symmetric when [A]^T = [A] (a_ij = a_ji). For a 1D spring element, k12 = k21 = −k, so the element stiffness matrix is symmetric by construction — a direct consequence of Maxwell–Betti reciprocity, the same reciprocity that guarantees a linear-elastic structure's assembled global stiffness matrix [K] is always symmetric. Which statement is correct?", choices:["[k]^(e) is symmetric because its rows sum to zero.","The transpose of [k]^(e) equals its inverse, not itself.","The spring element matrix satisfies [A]^T = [A] by construction (k12 = k21 = −k), and this symmetry is a direct consequence of Maxwell–Betti reciprocity — true both for the individual element and for the fully assembled structure.","Symmetry holds only after boundary conditions have been applied."], correct:2},
+  {topic:"Matrices + Springs", q:"True or False: When assembling a global stiffness matrix, it must be initialized with every entry equal to 1 (not zero), since the scatter step only adds each element's contribution on top of an already fully populated starting matrix.", choices:["True","False"], correct:1},
+  {topic:"Springs + Trusses", q:"Boundary conditions are imposed by striking out the rows/columns of [K] corresponding to prescribed-displacement DOFs (e.g., u1 = 0) from the assembled (singular) system. Consider a three-bar truss with nodes 1 = (0,0) mm (pin support), 2 = (4000,0) mm (roller support), 3 = (2000,3000) mm (free), with 2 translational DOFs per node. How many rows/columns are struck out, and what is the size of the reduced system?", choices:["1 struck out; reduced 5×5 system","4 struck out; reduced 2×2 system","3 struck out (pin fixes u and v at node 1, roller fixes only v at node 2); reduced 3×3 system","2 struck out; reduced 4×4 system"], correct:2},
+  {topic:"Springs + Trusses", q:"The 2×2 stiffness matrix [[k, −k], [−k, k]] describes a bar/spring element aligned with the global x-axis, where local and global displacements coincide. Now consider the general 4×4 global truss element stiffness matrix applied to a member with φ = 0 (so c = 1, s = 0). What does that general matrix reduce to?", choices:["A 4×4 identity matrix","The 1D bar matrix embedded in the u₁,u₂ rows/columns with zeros in the transverse v₁,v₂ rows/columns","A diagonal matrix diag(k,0,k,0)","The frame bending block [[12,6L],[6L,4L²]] repeated on the diagonal"], correct:1},
+  {topic:"Springs + Trusses", q:"For a 1D axial member, the internal force is recovered as N = k(u_j − u_i), the relative displacement between its two ends. When this idea is generalized to an arbitrarily oriented 2D truss member, which quantity plays the role of that relative displacement (u_j − u_i)?", choices:["The difference of the global displacements, u_j − u_i, used exactly as in 1D","The difference of the end rotations, θ_j − θ_i","The difference of the transverse local displacements, v′_j − v′_i","The difference of the local axial displacements, u′_j − u′_i, obtained after transforming global end displacements with [T]"], correct:3},
+  {topic:"Springs + Trusses", q:"Two different global DOF-numbering conventions are used for structural elements with 0-indexed nodes: a truss places a node of index i at global DOFs 2i and 2i+1 (2 DOFs per node), while a frame places a node of index i at global DOFs 3i, 3i+1, 3i+2 (3 DOFs per node). Under these conventions, a node with display number \"Node 3\" (index 2) occupies which global DOFs in a truss versus in a frame?", choices:["Truss: DOFs 3,4; Frame: DOFs 5,6,7","Truss: DOFs 2,3; Frame: DOFs 4,5,6","Truss: DOFs 5,6; Frame: DOFs 9,10,11","Truss: DOFs 4,5; Frame: DOFs 6,7,8"], correct:3},
+  {topic:"Springs + Trusses", q:"True or False: An assembled stiffness matrix [K] is singular until enough supports are applied — a rigid-body translation of the whole structure produces no internal force. For a three-bar truss with a pin (fixing 2 DOFs) and a roller (fixing 1 DOF), striking out those 3 DOFs reduces the singular 6×6 assembled system to an invertible 4×4 one before solving.", choices:["True","False"], correct:1},
+  {topic:"Trusses + Frames", q:"A 2D rotation block for a truss member is [R] = [[c, s], [−s, c]]; extending it to a frame member (which also carries a rotational DOF) gives a 3×3 block [[c, s, 0], [−s, c, 0], [0, 0, 1]] that carries the nodal rotation through unchanged. For a vertical frame column running from (0,0) to (0,3) m (so c = 0, s = 1), what is that 3×3 rotation block?", choices:["[[1, 0, 0], [0, 0, 1], [0, −1, 0]]","[[0, −1, 0], [1, 0, 0], [0, 0, 1]]","[[1, 0, 0], [0, 1, 0], [0, 0, 1]]","[[0, 1, 0], [−1, 0, 0], [0, 0, 1]]"], correct:3},
+  {topic:"Trusses + Frames", q:"A 2D truss counts 2 global DOFs per node (u, v), so an n-node truss assembles to a 2n×2n matrix; a 2D frame counts 3 per node (u, v, θ), so an n-node frame assembles to a 3n×3n matrix. Consider a 3-node L-shaped frame whose node 1 is fully fixed (u1=v1=θ1=0). What size is the reduced system actually solved for the remaining unknown displacements?", choices:["3×3","2×2","6×6","9×9"], correct:2},
+  {topic:"Trusses + Frames", q:"If the bending terms of a 2D frame element's local stiffness matrix are omitted (I = 0, so the terms 12EI/L³ and 6EI/L² vanish) and the rotational DOFs are removed, the remaining translational block reduces to the corresponding 2D truss element matrix. With the shorthand a = EA/L, what is the 2×2 (i,i) sub-block of that limiting matrix, in terms of a, c, and s?", choices:["a·[[c², cs], [cs, s²]]","[[1, 0], [0, 1]]","a·[[s², cs], [cs, c²]]","a·[[c², −cs], [−cs, s²]]"], correct:0},
+  {topic:"Springs + Frames", q:"The general stiffness-method procedure runs: define nodes/DOFs → define connectivity → set element properties → form each element's stiffness matrix → assemble → apply boundary conditions → solve → recover reactions/internal forces. A frame element's stiffness matrix additionally requires the section's moment of inertia I (bending terms 12EI/L³, 6EI/L², 4EI/L, 2EI/L), unlike a truss or spring element. Which step in the procedure is where this new ingredient (I) enters?", choices:["Assembling the global load vector","Back-substituting for the reactions","Defining the nodes and degrees of freedom","Forming each element's stiffness matrix — the step where a frame needs I in addition to A"], correct:3},
+  {topic:"Trusses + Frames", q:"Both a 4×4 2D truss transformation matrix (built from two copies of [[c,s],[−s,c]]) and a 6×6 2D frame transformation matrix (two copies of [[c,s,0],[−s,c,0],[0,0,1]]) are used in the triple product [K]^(e) = [T]^T[K']^(e)[T]. Which shared property of [T] makes replacing [T]⁻¹ with [T]^T valid in both cases?", choices:["[T] is symmetric","[T] is orthogonal, so [T]⁻¹ = [T]^T, verified via the identity [T]^T[T] = I using c²+s²=1","[T] is diagonal","[T] is idempotent ([T][T] = [T])"], correct:1},
+  {topic:"Trusses + Frames", q:"A truss element's local stiffness matrix is built from a single axial stiffness k = EA/L. A frame element's local stiffness matrix additionally depends on the section's bending stiffness. Which section property appears in a frame element's local stiffness matrix but never in a truss element's?", choices:["Cross-sectional area A","Elastic modulus E","Member length L","Moment of inertia I"], correct:3},
+  {topic:"Springs + Trusses", q:"A member contributes stiffness only to the rows/columns of the global nodes it directly touches. Using the 0-indexed DOF convention (node index i → global DOFs 2i, 2i+1), suppose a member connects the truss nodes displayed as \"Node 2\" (index 1) and \"Node 3\" (index 2), and is the only member touching those two nodes in a 3-node truss. Which rows/columns of the assembled 6×6 global matrix remain exactly zero from this member's contribution alone?", choices:["Rows/columns 2 and 3","Rows/columns 0 and 1 (Node 1's DOFs)","Rows/columns 4 and 5","Rows/columns 1 and 2"], correct:1},
+  {topic:"Trusses + Frames", q:"A horizontal global load applied at a tilted member's node is felt by the member itself as an axial component f' = c·fx + s·fy — for example, with c = 0.8 and s = 0.6, a 10 kN horizontal load splits into 8 kN axial and −6 kN transverse — and a member's axial stiffness responds only to that axial component. For a horizontal beam member carrying a horizontal 10 kN tip load, with c = 1 and s = 0, what is the beam's axial force?", choices:["8.0 kN","0 kN","30.0 kN","10.0 kN tension"], correct:3},
+  {topic:"Springs + Trusses", q:"True or False: In 2D or 3D, \"node\" and \"degree of freedom\" stop coinciding, because a roller support fixes displacement normal to a surface while leaving the tangential DOF free. Support conditions can be encoded per DOF — for example, a code that constrains only the X translation, one that constrains only Y, and one (pinned) that constrains both X and Y — so a roller restrains just one of a node's two translational DOFs.", choices:["True","False"], correct:0},
+  {topic:"Trusses + Frames", q:"A joint-by-joint equilibrium check for a truss resolves each member's axial force into x- and y-components using that member's direction cosines c and s, and requires the sums to balance the applied load at each free joint. Applying the same idea to the rigid corner of a frame (where members meet at a shared rotational DOF), what additional condition must hold that a pin-jointed truss joint never needs?", choices:["Equal axial forces in all members meeting at the joint","Moment equilibrium (ΣM = 0) at the joint — the moments the column and beam deliver to the joint must cancel, the signature of a shared rotational DOF","Equal member lengths at the joint","Axial force equilibrium only, since rotations are irrelevant"], correct:1},
+  {topic:"Interpolation + Integration", q:"Using the one-point Gauss–Legendre rule on the parent interval (w1 = 2, ξ1 = 0), the integral over ξ ∈ [−1, 1] of the product N1(ξ)·N2(ξ) of two linear shape functions is approximated as 2·(0.5)(0.5) = 0.5. Which statement about this approximation is correct?", choices:["It actually equals 0.25, not 0.5, since the weights must be halved","It is NOT exact: N₁·N₂ is a quadratic (degree-2) integrand, and a one-point rule is exact only through degree 1, so the approximate value 0.5 differs from the exact value 1/3","It is exact, because partition of unity makes N₁·N₂ equal to 1 everywhere on the interval","It is exact, because a one-point rule can integrate any product of linear functions"], correct:1},
+  {topic:"Interpolation + Integration", q:"A biquadratic element's center shape function is N0(ξ)·N0(η) = (1 − ξ²)(1 − η²). If you square this function and integrate it over the parent square using a 2×2 tensor-product Gauss rule (exact through degree 2n − 1 = 3 in each direction), which outcome is correct?", choices:["The integral is exact because all four 2-point Gauss weights are equal to 1","The integral requires the n = 1 rule instead, since higher-point rules are less accurate","The integral is exact, because 2n − 1 = 3 and each factor (1 − ξ²) is only quadratic","The integral is NOT exact: squaring raises the integrand to degree 4 in each variable, above the degree-3 limit of the 2-point rule in each direction"], correct:3},
+  {topic:"Interpolation + Integration", q:"True or False: A three-point Gauss rule (weights 5/9, 8/9, 5/9 at ξ = −√(3/5), 0, +√(3/5)) integrates the quadratic function N0(ξ) = 1 − ξ² over [−1, 1] exactly, giving ∫ N0 dξ = 2/3.", choices:["True","False"], correct:1},
+  {topic:"Integration + Python", q:"A numerical routine returns Gauss–Legendre nodes [−0.57735027, 0.57735027] and weights [1, 1]. Which entry of the standard Gauss quadrature table does this reproduce?", choices:["The n = 3 rule: ξ = 0, ±√(3/5), w = 8/9 and 5/9, 5/9","The n = 1 rule: ξ₁ = 0, w₁ = 2","The n = 2 rule: ξ = ±1/√3, w = 1 and 1","None of the rows — the values match only the trapezoidal rule"], correct:2},
+  {topic:"Integration + Python", q:"A symbolic integration tool reports ∫₀⁴ (−x⁴ + 20x² + 6x + 5) dx = 4348/15 ≈ 289.8667. What does that number represent?", choices:["The composite trapezoidal N = 16 result, 289.3672","The Gauss n = 1 result, 324.000","The percent error of the Gauss n = 1 result (11.78%)","The exact benchmark value of ∫₀⁴ (−x⁴ + 20x² + 6x + 5) dx against which every numerical method there is compared"], correct:3},
+  {topic:"Interpolation + Python", q:"If two different implementations of linear interpolation (say, one working in the normalized coordinate ξ, another working directly in x) are applied to the same two data points and evaluated at the same physical location, what should be true of their results?", choices:["The x-based version is only an approximation of the ξ-based one","They may differ slightly because the ξ-based version introduces rounding error the x-based version avoids","They agree only when the segment happens to be centered at the origin","They must give exactly the same value, since there is only one linear function passing through two given points"], correct:3},
+  {topic:"Interpolation + Python", q:"Plotting the two functions (1 − ξ)/2 and (1 + ξ)/2 over ξ ∈ [−1, 1] makes which fundamental shape-function property directly visible?", choices:["The locations of the Gauss–Legendre integration points","The isoparametric mapping between physical and natural coordinates","The O(h²) error decay of the composite trapezoidal rule","Each shape function equals 1 at its own node (ξ = −1 or +1) and 0 at the other — the defining shape-function property"], correct:3},
+  {topic:"Interpolation + Integration", q:"True or False: The integral ∫₀^L (du/dx)² dx is evaluated exactly by a one-point Gauss rule when the displacement field u(x) = u1(1 − x/L) + u2(x/L) is linear, since its derivative du/dx = (u2 − u1)/L is constant — the same reasoning that makes a one-point rule integrate the product of two linear shape functions only approximately, since that product is quadratic.", choices:["True","False"], correct:0},
+  {topic:"Integration + Python", q:"For the linear displacement field u(x) = u1(1 − x/L) + u2(x/L), would a one-point Gauss rule evaluate ∫₀^L u(x) dx exactly, and why?", choices:["No — a one-point rule is exact only for constant integrands","Yes, but only in the special case L = 2","Yes — u(x) is linear in x, and the one-point rule (ξ₁ = 0, w₁ = 2, Jacobian J = L/2) is exact for any linear integrand","No — a one-point rule always carries roughly an 11.78% error regardless of the integrand"], correct:2},
+  {topic:"Matrices + Trusses", q:"The global truss element stiffness is built as [K]^(e) = [T]^T[K']^(e)[T], relying on the key simplification [T]⁻¹ = [T]^T, verified by direct multiplication ([T]^T[T] = [I], using c² + s² = 1). Why does that multiplication step actually PROVE [T]⁻¹ = [T]^T, rather than merely suggest it?", choices:["Because the product [T]ᵀ[T] = [I] is symmetric, and every symmetric matrix equals its own inverse.","Because [T] has unit determinant, which is the definition of an inverse in the 4×4 case.","Because a matrix [B] is defined to be the inverse of [A] precisely when [A][B] = [B][A] = [I]; since [T]^T[T] = [I] exhibits exactly that pairing (and an inverse, when it exists, is unique), [T]^T is by definition the inverse of [T].","Because the inverse exists whenever c ≠ s, and c² + s² = 1 guarantees c ≠ s."], correct:2},
+  {topic:"Matrices + Trusses", q:"Matrix multiplication is not commutative, and the rotated stiffness of a truss member must be formed as [T]^T[k][T] — never [T][k][T]^T or any reordering. Starting from the derivation [K]^(e) = [T]⁻¹[K']^(e)[T] and substituting [T]⁻¹ = [T]^T, which option best explains why computing [T][K']^(e)[T]^T instead would give the wrong member matrix?", choices:["Because [T][K']^(e)[T]^T would be asymmetric, while every stiffness matrix must be symmetric.","Because [T][K′]⁽ᵉ⁾[T]ᵀ is always the zero matrix, which would give the element zero stiffness.","Because [T] and [K′]⁽ᵉ⁾ do not commute, the reversed sandwich is a different matrix than [T]ᵀ[K′]⁽ᵉ⁾[T]; only the transpose-first order matches the derivation [T]⁻¹[K′]⁽ᵉ⁾[T] and describes the member with the correct rotated orientation.","Because the transpose is only computable by hand for 2×2 matrices, so the 4×4 case can only be done in the [T]ᵀ[k][T] order."], correct:2},
+  {topic:"Matrices + Trusses", q:"A truss member's local axial displacement is computed as u1' = c·u1 + s·v1, a matrix–vector product using the transformation [T]. Which rule explains why this expression is exactly the dot product of a row of [T] with the global displacement vector {u1, v1}?", choices:["Because each entry of a matrix–vector product [T]{u} is, by definition, the dot product of the corresponding row of [T] with the vector {u} — here the row (c, s) dotted with (u1, v1)","Because c² + s² = 1 by definition of the direction cosines","Because [T] is symmetric, so rows and columns are interchangeable","Because the dot product is commutative, so row and column order doesn't matter"], correct:0},
+  {topic:"Matrices + Trusses", q:"True or False: [A][B] = [0] does not necessarily mean either matrix is zero — for instance, a nonzero stiffness matrix can multiply a nonzero displacement pattern and produce zero force (a rigid-body mode). However, this only applies to rectangular matrices; for square stiffness matrices, a zero product always forces the displacement to be zero. Consequently, a singular truss stiffness matrix (arising from too few restrained DOFs) must contain an all-zero row and cannot arise from rigid-body motion.", choices:["True","False"], correct:1},
+  {topic:"Matrices + Trusses", q:"Rotating a node's force back into a truss member's local axes (f2x' = c·f2x + s·f2y) uses the same dot-product rule that describes any matrix–vector product. Physically, what does the resulting local axial component represent?", choices:["The internal axial force N carried by the member — recovered by projecting the global nodal force onto the member's own axis, matching N = k(u2' − u1') from the elongation","The transverse shear force in the member","The reaction force at the support","An unbalanced force indicating an incomplete assembly"], correct:0},
+  {topic:"Matrices + Trusses", q:"True or False: Combining the transpose identity ([A][B])^T = [B]^T[A]^T with the fact that a local truss element matrix [K']^(e) is symmetric, the transformed matrix [T]^T[K']^(e)[T] is generally asymmetric unless the transformation matrix [T] happens to equal the identity matrix.", choices:["True","False"], correct:1},
+  {topic:"Matrices + Trusses + Frames", q:"A nonzero stiffness matrix can multiply a nonzero displacement pattern to produce zero force — that pattern is a rigid-body mode, and its existence is exactly why an unconstrained structural model cannot be solved (the stiffness matrix is singular). A 2D truss with fewer than three restrained DOFs has a singular reduced stiffness matrix, and a planar frame has three rigid-body modes (global x-translation, global y-translation, and rigid-body rotation) that must be eliminated by three independent, geometrically nondegenerate restraints. Which joint conclusion follows from these facts?", choices:["Only trusses suffer rigid-body modes; frame models are automatically stable because they include rotational DOFs.","A single arbitrarily placed restraint is sufficient to make the reduced frame matrix invertible, regardless of its direction.","Each rigid-body mode is precisely the zero-force displacement pattern described above; the truss's \"at least three restrained DOFs\" rule and the frame's \"three rigid-body modes, with restraint geometry mattering more than the count\" are the same singularity diagnosis — so, e.g., a pin plus a roller can stabilize a planar frame even though no nodal rotation is directly restrained, while three rollers all normal to the same direction cannot.","Rigid-body modes disappear once the load vector {F} contains a moment, so the frame's applied moments alone guarantee a unique solution."], correct:2},
+  {topic:"Matrices + Frames", q:"The assembled global stiffness matrix of a frame must be symmetric before boundary conditions are applied, for the same reason as the truss case: each element matrix [K]^(e) = [T]^T[K']^(e)[T] is symmetric by construction, and superposition (assembly) preserves symmetry. Which combination of matrix-algebra properties makes this argument complete?", choices:["The global matrix inherits symmetry from the identity matrix fact [A][I] = [I][A] = [A].","The transpose identity ([A][B])ᵀ = [B]ᵀ[A]ᵀ makes each sandwich [T]ᵀ[K′]⁽ᵉ⁾[T] symmetric (given [K′]⁽ᵉ⁾ symmetric), and matrix addition — the operation of assembly — preserves symmetry because ([A]+[B])ᵀ = [A]ᵀ + [B]ᵀ.","Matrix multiplication being non-commutative guarantees that the assembled matrix is symmetric automatically.","Symmetry follows from the loads being applied at nodes only; matrix algebra is irrelevant to it."], correct:1},
+  {topic:"Matrices + Frames", q:"A local frame element matrix [K']^(e) is symmetric and singular before boundary conditions are applied — just like the truss case — because translating or rotating the whole member as a rigid body takes zero energy. Also, a linear system [A]{x} = {y} has a unique solution {x} = [A]⁻¹{y} only if [A]⁻¹ exists. Which conclusion correctly combines these two facts?", choices:["Because singular matrices cannot be solved, the frame example obtains displacements from statics instead of from the stiffness method.","The element matrix is singular because EA and EI are measured in incompatible units, so the example switches to consistent SI units before solving.","Singularity only affects matrices larger than 6×6; small element matrices are always invertible.","A rigid-body translation or rotation is a nonzero local displacement pattern {u'} with [K']^(e){u'} = {0} — a nonzero-times-zero force-vector pattern; hence a frame example must fix all three base DOFs (u1 = v1 = θ1 = 0) before the reduced system admits a unique solution."], correct:3},
+  {topic:"Interpolation + Trusses", q:"Normalized linear interpolation blends two nodal values as y(ξ) = N1(ξ)yk + N2(ξ)yk+1, with N1 = (1 − ξ)/2 and N2 = (1 + ξ)/2 (so N1(0) = N2(0) = 1/2). A truss member has local axial displacements u1' = 2.2 mm and u2' = 3.4 mm at its two ends. Interpolating to the member's midpoint (ξ = 0), what axial displacement does the bar carry half-way along its length?", choices:["2.5 mm","2.8 mm","2.2 mm","3.4 mm"], correct:1},
+  {topic:"Interpolation + Trusses", q:"True or False: Because a set of linear shape functions is defined to be 1 at its own node and 0 at every other node, the axial displacement field inside a truss bar is fixed entirely by its two nodal values; consistent with this, a member's internal-force recovery N = (EA/L)(uj' − ui') makes use of the interpolated displacement at the element's midpoint, rather than the end nodal displacements.", choices:["True","False"], correct:1},
+  {topic:"Interpolation + Trusses", q:"By the uniqueness of polynomial interpolation, n + 1 distinct nodes determine exactly one polynomial of degree ≤ n through the nodal values — so two points determine a unique straight line. A truss bar element has exactly two axial DOFs (ui', uj'). Why can a single two-node truss bar not represent a quadratic axial displacement field?", choices:["With only two axial nodal values the unique interpolating polynomial has degree ≤ 1 (a straight line in the natural coordinate); representing a quadratic would require a third axial unknown per element, which a two-DOF bar does not provide, and quadratic bar shapes are deferred to higher-order elements with interior nodes.","It can — the transverse DOFs (vᵢ′, vⱼ′) provide the extra freedom needed for curvature along the bar.","Quadratic interpolation is impossible in the finite element method under any circumstances.","The axial displacement is exactly constant along a truss bar, so polynomial degree is irrelevant."], correct:0},
+  {topic:"Interpolation + Frames", q:"An interpolation scheme normally uses as many shape functions as there are nodal values to match (two linear functions for two nodes; three quadratic functions for three nodes), each equal to 1 at its own node and 0 at the others. A beam (bending) element instead uses four Hermite cubic functions N1–N4 to interpolate the transverse displacement v(x). Why four, rather than two?", choices:["Each node supplies two conditions — deflection v and slope θ = v' — so the four nodal quantities (v1, θ1, v2, θ2) require four shape functions (N1, N2 matching value at one node, N3, N4 matching slope), exactly following the rule 'one shape function per matched quantity.'","Four functions are needed because Hermite interpolation always uses exactly one more function than Lagrange interpolation, regardless of conditions.","Four functions are needed because the frame element has six local DOFs and the axial block already uses the other two.","Four functions are needed so that the bending block has enough nonzero entries to fill a 4×4 block."], correct:0},
+  {topic:"Interpolation + Frames", q:"True or False: A bilinear quadrilateral's shape functions are built as a tensor product of 1D linear bases, and a frame element's axial (EA/L) block and bending (EI) block are fully coupled in the local 6×6 stiffness matrix — every entry mixes axial and bending terms, so the local frame matrix cannot be decomposed into a separate axial-only piece and a separate bending-only piece.", choices:["True","False"], correct:1},
+  {topic:"Interpolation + Frames", q:"A beam element's bending block is derived from the cubic v(x) = a1 + a2x + a3x² + a4x³, noting that for a prismatic Euler–Bernoulli beam with no distributed load, the governing equation EI·v''''(x) = 0 integrates to exactly a cubic — so this is not an approximation, but the exact Euler–Bernoulli solution. How does the general distinction between interpolation (matches nodal values exactly) and approximation (best-fit, need not match) make sense of this?", choices:["The beam's deflection is quadratic, and the cubic shape functions are only used to make the matrix a convenient size.","The cubic is only an approximation because a parabola would fit the same four conditions better.","The cubic matches the four nodal conditions (v₁, θ₁, v₂, θ₂) exactly and simultaneously satisfies the differential equation, because the exact solution of v⁗ = 0 is itself a third-degree polynomial whose four free constants are fixed uniquely by the four nodal conditions — so true interpolation and the exact solution coincide.","Interpolation and approximation are the same thing here, so the distinction has no bearing on the frame element."], correct:2},
+  {topic:"Matrix algebra", q:"Which of the following matrices is symmetric?", choices:["[[1, 2], [3, 4]]","[[3, −1, 5], [2, 4, 4]]","[[1, 2], [−1, 0]]","[[4, 1, 2], [1, 3, 5], [2, 5, 6]]"], correct:3},
+  {topic:"Matrix algebra", q:"What is the transpose of A = [[3, −1, 5], [2, 4, 4]]?", choices:["[[3, 2], [−1, 4], [5, 4]]","[[2, 3], [4, −1], [4, 5]]","[[3, −1, 5], [2, 4, 4]]","[[−1, 3], [4, 2], [4, 5]]"], correct:0},
+  {topic:"Matrix algebra", q:"Under what condition does the matrix product [A][B] exist?", choices:["[A] and [B] must have the same dimensions","[A] and [B] must both be square","The number of columns of [A] must equal the number of rows of [B]","The number of rows of [A] must equal the number of rows of [B]"], correct:2},
+  {topic:"Matrix algebra", q:"Compute C = [A][B] for A = [[3, −1, 5], [2, 4, 4]] and B = [[1, 2], [−1, 0], [2, −1]].", choices:["[[6, 0], [14, 1]]","[[14, 1], [6, 0]]","[[1, 14], [0, 6]]","[[14, 6], [1, 0]]"], correct:1},
+  {topic:"Matrix algebra", q:"True or False: Matrix multiplication is generally not commutative; even when both products exist, typically [A][B] ≠ [B][A].", choices:["True","False"], correct:0},
+  {topic:"Matrix algebra", q:"Which identity for the inverse of a matrix product is correct?", choices:["([A][B])⁻¹ = [A]⁻¹[B]⁻¹","([A][B])⁻¹ = [A][B]","([A][B])⁻¹ = [B][A]","([A][B])⁻¹ = [B]⁻¹[A]⁻¹"], correct:3},
+  {topic:"Matrix algebra", q:"Provided [A]⁻¹ exists, what is the solution of the linear system [A]{x} = {y}?", choices:["{x} = {y}[A]","{x} = {y}[A]⁻¹","{x} = [A]{y}","{x} = [A]⁻¹{y}"], correct:3},
+  {topic:"Interpolation", q:"True or False: Quadratic interpolation fits a parabola through three points at once, rather than a line through two.", choices:["True","False"], correct:0},
+  {topic:"Interpolation", q:"Three data points (0.2, 2), (0.5, 3.5), (0.8, 5) happen to lie exactly on a straight line. What is the shape of the unique quadratic Lagrange interpolant built through all three?", choices:["It reduces to that same straight line — the x² coefficient works out to exactly zero","It has two possible solutions, one for each direction of curvature","It is undefined, since three collinear points cannot determine a quadratic","It is a genuine parabola that bows away from the line between the points"], correct:0},
+  {topic:"Interpolation", q:"True or False: Every Lagrange basis function satisfies L_{k,n}(x_j) = δ_{kj}, i.e., it equals 1 at its own node and 0 at all other nodes.", choices:["True","False"], correct:0},
+  {topic:"Interpolation", q:"Given n+1 distinct nodes, there is exactly one polynomial of what maximum degree passing through all n+1 nodal values?", choices:["Degree ≤ n","Any degree, non-unique","Degree exactly n+1","Degree exactly 2n"], correct:0},
+  {topic:"Bilinear elements", q:"In the bilinear interpolation formula in normalized coordinates, which weight multiplies the corner value f_{21} located at (ξ, η) = (1, −1)?", choices:["(1 − ξ)(1 + η)/4","(1 + ξ)(1 + η)/4","(1 − ξ)(1 − η)/4","(1 + ξ)(1 − η)/4"], correct:3},
+  {topic:"Bilinear elements", q:"For a rectangle with x1 = 2, x2 = 6, y1 = 0, y2 = 8 and corner values f11 = 16, f21 = 8, f12 = −24, f22 = 0, bilinear interpolation gives f(5, 2) ≈ ?", choices:["16","8","6","−6"], correct:2},
+  {topic:"Gauss quadrature", q:"Which expression is the 2-point Gauss rule on the parent interval [−1, 1] (weights w₁ = w₂ = 1, points ±1/√3)?", choices:["f(−1/2) + f(1/2)","(5/9) f(−√(3/5)) + (8/9) f(0) + (5/9) f(√(3/5))","2 f(0)","f(−1/√3) + f(1/√3)"], correct:3},
+  {topic:"Gauss quadrature", q:"An n-point Gauss quadrature rule is exact for polynomials up to what maximum degree?", choices:["n − 1","n² − 1","2n + 1","2n − 1"], correct:3},
+  {topic:"Gauss quadrature", q:"True or False: For the two-node bar element with linear displacement field u(x) = u₁(1 − x/L) + u₂(x/L), the strain du/dx is the constant (u₂ − u₁)/L, so ∫₀ᴸ (du/dx)² dx requires at least a two-point Gauss rule to be evaluated exactly — a one-point rule cannot integrate even a constant integrand exactly.", choices:["True","False"], correct:1},
+  {topic:"Stiffness method", q:"For a 1D axial bar with cross-sectional area A, elastic modulus E, and original length L, what is the spring/element stiffness k derived from Hooke's Law?", choices:["k = EA·L","k = AE/L","k = E/(AL)","k = AL/E"], correct:1},
+  {topic:"Stiffness method", q:"For an element with nodal displacements u₁ and u₂ (both measured positive rightward), what is the change in length ΔL?", choices:["u₁ + u₂","u₂ − u₁","u₁ − u₂","(u₁ + u₂)/2"], correct:1},
+  {topic:"Stiffness method", q:"What is the 2×2 element stiffness matrix [k]^(e) for a single axial element of stiffness k?", choices:["[[k, k], [k, k]]","[[1, −1], [−1, 1]]","[[k, −k], [−k, k]]","[[k, −k], [k, −k]]"], correct:2},
+  {topic:"Stiffness method", q:"For two elements in series (elements 1–2 and 2–3 with stiffnesses k₁ and k₂), what is the assembled 3×3 global stiffness matrix?", choices:["[[k₁+k₂, −k₁, 0], [−k₁, k₂, −k₂], [0, −k₂, 0]]","[[k₁, 0, 0], [0, k₂, 0], [0, 0, 0]]","[[k₁, −k₁, 0], [−k₁, k₁+k₂, −k₂], [0, −k₂, k₂]]","[[k₁, −k₁, 0], [−k₁, k₁, −k₂], [0, −k₂, k₂]]"], correct:2},
+  {topic:"Stiffness method", q:"Two springs in series connect a fixed wall (node 1) to node 2, then to a free node 3, with stiffnesses k1 = 20 kN/mm and k2 = 15 kN/mm. A load P = 40 kN is applied at node 3. After striking the fixed DOF (u1 = 0), what is the reduced 2×2 stiffness system for {u2, u3}?", choices:["[[20, −15], [−15, 35]] {u2, u3} = {0, 40}","[[35, −20], [−20, 15]] {u2, u3} = {40, 0}","[[35, −15], [−15, 15]] {u2, u3} = {0, 40}","[[15, −15], [−15, 35]] {u2, u3} = {0, 40}"], correct:2},
+  {topic:"Stiffness method", q:"For the same system (k1 = 20 kN/mm, k2 = 15 kN/mm in series, node 1 fixed, and a single load P = 40 kN applied at the free node 3), what is the reaction force F1 at the fixed wall?", choices:["−40 kN","+40 kN","0 kN","−20 kN"], correct:0},
+  {topic:"Stiffness method", q:"In a reduced-system check, K₁₁ = [[4, −1], [−1, 4]] kN/mm, {F_known} = {10, 0}ᵀ kN, and all prescribed displacements are zero. What is the solution {u_unknown}?", choices:["{0.667, 2.667}ᵀ mm","{2.667, 0.667}ᵀ mm","{2.667, −0.667}ᵀ mm","{10, 0}ᵀ mm"], correct:1},
+  {topic:"Stiffness method", q:"True or False: Reaction forces at the supports are recovered by going back to the full assembled [K]{u} = {F} and evaluating the rows that were struck out, using the now-known complete displacement vector.", choices:["True","False"], correct:0},
+  {topic:"Stiffness method", q:"A truss member runs from node 1 at (0,0) m to node 2 at (4,3) m. What are its length L and direction cosines c and s?", choices:["L = 5 m, c = 0.8, s = 0.6","L = 7 m, c = 4/7, s = 3/7","L = 3 m, c = 1, s = 0","L = 5 m, c = 0.6, s = 0.8"], correct:0},
+  {topic:"Matrix algebra", q:"Compute the dot product a·b for a = {2, 3, 5} and b = {−2, 0, 3}.", choices:["0","33","11","−11"], correct:2},
+  {topic:"Matrix algebra", q:"If [A][B] = [0] (the zero matrix), what must be true of [A] and [B]?", choices:["Both [A] and [B] must be zero matrices","Neither [A] nor [B] must necessarily be the zero matrix","[A] must be the zero matrix","[B] must be the zero matrix"], correct:1},
+  {topic:"Interpolation", q:"What is the sum N1(ξ) + N2(ξ) of the two linear shape functions on the reference segment ξ ∈ [−1, 1]?", choices:["1","ξ","0","2"], correct:0},
+  {topic:"Interpolation", q:"True or False: If a function y(x) happens to already be linear between two nodes, the piecewise-linear interpolant built from those two nodes only approximates it — it deviates slightly at points strictly between the nodes, since interpolation always introduces at least a small error unless the function is constant.", choices:["True","False"], correct:1},
+  {topic:"Gauss quadrature", q:"What are the weights of the 3-point Gauss quadrature rule on [−1, 1]?", choices:["2, 2, 2","5/9, 8/9, 5/9","1, 1, 1","1/3, 4/3, 1/3"], correct:1},
+  {topic:"Gauss quadrature", q:"What is the single-panel (Newton–Cotes, n = 1) Trapezoidal rule approximation of ∫ₐᵇ f(x) dx?", choices:["(b − a)·[f(a) + f(b)]","(b − a)·f(a)·f(b)","(b − a)·f((a+b)/2)","(b − a)·[f(a) + f(b)]/2"], correct:3},
+  {topic:"Stiffness method", q:"Two springs share node 2: spring 1 (k1 = 20 kN/mm) connects node 1 to node 2, and spring 2 (k2 = 15 kN/mm) connects node 2 to node 3. What is the diagonal entry K22 of the assembled global stiffness matrix?", choices:["35 kN/mm (k1 + k2)","15 kN/mm (k2 only)","20 kN/mm (k1 only)","5 kN/mm (k1 − k2)"], correct:0},
+  {topic:"Stiffness method", q:"True or False: Because each row of an element stiffness matrix [k]^(e) sums to zero (a rigid-body translation produces no internal force), the element stiffness matrix has no inverse until boundary conditions are applied.", choices:["True","False"], correct:0},
+  {topic:"Stiffness method", q:"True or False: For a truss member from node 1 at (x1, y1) to node 2 at (x2, y2), the direction cosines are defined as c = (y2 − y1)/L and s = (x2 − x1)/L, where L is the member length.", choices:["True","False"], correct:1},
+  {topic:"Stiffness method", q:"True or False: The local axial displacement of a truss node is the projection of its global (u, v) displacement onto the member's own axis — computed as the dot product of {u, v} with the unit vector (c, s) along the member.", choices:["True","False"], correct:0},
+  {topic:"Stiffness method", q:"A purely horizontal 10 kN global load is applied at a node of a tilted truss member (c = 0.8, s = 0.6). In the member's local coordinates, this load is felt as:", choices:["Axial component 8 kN and transverse component −6 kN","Axial component 10 kN and transverse component 0 kN","Axial component −8 kN and transverse component 6 kN","Axial component 6 kN and transverse component 8 kN"], correct:0},
+  {topic:"Stiffness method", q:"Why is the global element stiffness matrix written [K]^(e) = [T]^T[K']^(e)[T] rather than [T]⁻¹[K']^(e)[T]?", choices:["c² + s² = 0 by the definition of the direction cosines","[K']^(e) is diagonal, which makes the inverse unnecessary","[T] is symmetric, so its transpose equals itself","[T] is orthogonal — it represents a pure rotation that preserves vector lengths, so [T]⁻¹ = [T]^T"], correct:3},
+  {topic:"Stiffness method", q:"In the 4×4 global truss element stiffness matrix, the (1,1) entry is k·c² and the (2,2) entry is k·s². What does this pattern reflect physically?", choices:["The member resists displacement most strongly along directions close to its own axis — the (1,1) entry is largest when c²=1 (member horizontal) and the (2,2) entry is largest when s²=1 (member vertical)","k·c² and k·s² are mathematical artifacts with no physical meaning","The global stiffness matrix is always diagonal for a truss element","The member has separate, unrelated stiffness constants in x and y regardless of its orientation"], correct:0},
+  {topic:"Energy methods", q:"What makes a displacement field u(x) 'kinematically admissible' for the bar problem (fixed at x=0, free at x=L)?", choices:["It satisfies the essential (geometric) boundary condition u(0) = 0 and is differentiable enough for strain and stress to be computed from it","It must exactly equal the true displacement solution","It must be a polynomial of degree 2 or lower","It must satisfy the natural boundary condition σ(L)A = −P"], correct:0},
+  {topic:"Energy methods", q:"How is the total potential energy Π related to the strain energy U and the work W done by external forces?", choices:["Π = U − W","Π = W − U","Π does not depend on the external loads","Π = U + W"], correct:0},
+  {topic:"Energy methods", q:"True or False: For the bar fixed at x = 0 and free at x = L, u(0) = 0 is the essential boundary condition, while σ(L)A = −P is a natural boundary condition that emerges automatically from minimizing Π rather than being built into the trial functions by hand.", choices:["True","False"], correct:0},
+  {topic:"Energy methods", q:"The principle of minimum potential energy states that, among all admissible displacement fields, the one that actually solves the boundary value problem is the one that:", choices:["Maximizes the strain energy U alone","Minimizes the total potential energy Π = U − W","Minimizes the external work W alone","Makes the displacement field discontinuous"], correct:1},
+  {topic:"Energy methods", q:"In the worked Rayleigh–Ritz example (q = P = E = L = A = 1, exact Π = −1.16667), how did the trial functions' Π values compare to the exact minimum?", choices:["Adding more terms increased Π away from the exact value","Both the one-term (bx) and two-term Ritz trials gave Π ≥ Π_exact, decreasing toward it as more terms were added","The one-term trial matched Π_exact exactly","The Ritz trials gave Π values below Π_exact"], correct:1},
+  {topic:"Energy methods", q:"True or False: Because restricting the admissible space to a finite-dimensional subspace can only make it harder (never easier) to minimize Π, the Rayleigh–Ritz method always produces an upper bound on the true minimum potential energy.", choices:["True","False"], correct:0},
+];
+
+// Turn "[[a, b], [c, d]]" into a properly bracketed, column-aligned matrix.
+function matrixToHTML(token){
+  const inner = token.slice(2, -2); // strip outer [[ ... ]]
+  const rows = inner.split('], [').map(r => r.split(',').map(c => c.trim()));
+  const nCols = Math.max(...rows.map(r => r.length));
+  const cells = rows.map(r =>
+    r.map(c => `<span>${c}</span>`).join('')
+  ).join('');
+  return `<span class="mtx">` +
+           `<span class="bside l"></span>` +
+           `<span class="cells" style="grid-template-columns:repeat(${nCols}, auto);">${cells}</span>` +
+           `<span class="bside r"></span>` +
+         `</span>`;
+}
+
+// Replace every [[...]] matrix literal in a string with its rendered form;
+// everything else passes through untouched.
+function renderRich(str){
+  return `<span class="rich">${str.replace(/\[\[.*?\]\]/g, m => matrixToHTML(m))}</span>`;
+}
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+// Builds a RUN array from a specific sequence of QUESTIONS indices (origOrder).
+// Each question's choice order is freshly shuffled — that's fine even on
+// resume, since only questions at or after the saved position haven't been
+// seen yet.
+function buildRun(origOrder){
+  return origOrder.map(idx=>{
+    const item = QUESTIONS[idx];
+    const order = shuffle(item.choices.map((c,i)=>i));
+    return {
+      origIndex: idx,
+      topic:item.topic,
+      q:item.q,
+      choices:order.map(i=>item.choices[i]),
+      correct:order.indexOf(item.correct)
+    };
+  });
+}
+
+let RUN = buildRun(shuffle(QUESTIONS.map((q,i)=>i)));
+
+let current = 0;
+let tried = 0;
+let correctCount = 0;
+const quizArea = document.getElementById('quizArea');
+document.getElementById('tbCount').textContent = RUN.length + ' Q';
+
+function updateSummary(){
+  document.getElementById('sum-tried').textContent = tried;
+  document.getElementById('sum-correct').textContent = correctCount;
+}
+
+function switchMainTab(name){
+  document.querySelectorAll('.main-tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('#main-tab-bar button').forEach(el => el.classList.remove('active'));
+  document.getElementById('main-tab-' + name).classList.add('active');
+  const idx = { summary: 0, p1: 1 }[name];
+  document.querySelectorAll('#main-tab-bar button')[idx].classList.add('active');
+}
+
+// ── Resume-only code: NOT a graded submission, just a way to restore this
+// session's question order, current position, and tried/correct counts. ──
+function simpleHash(str){
+  let h = 0;
+  for (let i = 0; i < str.length; i++) { h = (Math.imul(31, h) + str.charCodeAt(i)) | 0; }
+  return (h >>> 0).toString(36).toUpperCase();
+}
+function b64Encode(str){ return btoa(unescape(encodeURIComponent(str))); }
+function b64Decode(str){ return decodeURIComponent(escape(atob(str))); }
+
+function generateResumeCode(){
+  const payload = JSON.stringify({
+    origOrder: RUN.map(r => r.origIndex),
+    current, tried, correctCount
+  });
+  const encoded = b64Encode(payload);
+  const checksum = simpleHash(payload).slice(0, 6);
+  const code = `EX1PRACTICE-${encoded}-${checksum}`;
+  document.getElementById('codeOutput').value = code;
+  const statusEl = document.getElementById('codeStatus');
+  statusEl.className = 'codeStatus show ok';
+  statusEl.textContent = 'Code generated below — copy it and save it somewhere you can find it later.';
+}
+
+function copyResumeCode(){
+  const output = document.getElementById('codeOutput');
+  if (!output.value) return;
+  output.select();
+  output.setSelectionRange(0, 99999);
+  const statusEl = document.getElementById('codeStatus');
+  const finish = (ok) => {
+    statusEl.className = 'codeStatus show ' + (ok ? 'ok' : 'err');
+    statusEl.textContent = ok
+      ? 'Copied to clipboard.'
+      : 'Could not copy automatically — select the code above and copy it manually.';
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(output.value).then(() => finish(true)).catch(() => finish(document.execCommand('copy')));
+  } else {
+    finish(document.execCommand('copy'));
+  }
+}
+
+function resumeFromCode(){
+  const raw = document.getElementById('codeInput').value.trim();
+  const statusEl = document.getElementById('codeStatus');
+  const match = raw.match(/EX1PRACTICE-([A-Za-z0-9+/=]+)-([A-Za-z0-9]+)/);
+  if (!match) {
+    statusEl.className = 'codeStatus show err';
+    statusEl.textContent = "That doesn't look like a valid code. Check that you copied it in full.";
+    return;
+  }
+  const [, encoded, checksum] = match;
+  let payload;
+  try { payload = b64Decode(encoded); }
+  catch (e) {
+    statusEl.className = 'codeStatus show err';
+    statusEl.textContent = 'Could not decode that code (malformed).';
+    return;
+  }
+  if (simpleHash(payload).slice(0, 6) !== checksum) {
+    statusEl.className = 'codeStatus show err';
+    statusEl.textContent = 'This code failed verification and cannot be used to resume. Paste it exactly as it was generated.';
+    return;
+  }
+  let data;
+  try { data = JSON.parse(payload); }
+  catch (e) {
+    statusEl.className = 'codeStatus show err';
+    statusEl.textContent = 'Could not read this code\u2019s saved progress.';
+    return;
+  }
+  if (!Array.isArray(data.origOrder) || data.origOrder.length !== QUESTIONS.length ||
+      data.origOrder.some(i => !Number.isInteger(i) || i < 0 || i >= QUESTIONS.length)) {
+    statusEl.className = 'codeStatus show err';
+    statusEl.textContent = 'This code was generated for a different version of this practice set.';
+    return;
+  }
+
+  RUN = buildRun(data.origOrder);
+  current = Math.min(Math.max(0, data.current | 0), RUN.length);
+  tried = Math.max(0, data.tried | 0);
+  correctCount = Math.max(0, data.correctCount | 0);
+  updateSummary();
+  render();
+
+  statusEl.className = 'codeStatus show ok';
+  statusEl.textContent = `Resumed at question ${Math.min(current + 1, RUN.length)} of ${RUN.length}. ` +
+    `Switch to the Problem 1 tab to continue.`;
+}
+
+function render(){
+  if(current >= RUN.length){
+    quizArea.innerHTML = `
+      <div class="card done">
+        <div class="big">QUESTIONS TRIED</div>
+        <div class="bigNum">${tried} / ${RUN.length}</div>
+        <div class="big">CORRECT ANSWERS</div>
+        <div class="bigNum">${correctCount} / ${RUN.length}</div>
+        <button class="restart" id="restartBtn">Run again</button>
+      </div>`;
+    document.getElementById('restartBtn').onclick = ()=>{
+      location.reload();
+    };
+    return;
+  }
+
+  const item = RUN[current];
+  const pct = Math.round((current/RUN.length)*100);
+
+  quizArea.innerHTML = `
+    <div class="progressRow">
+      <span>QUESTION ${current+1} / ${RUN.length}</span>
+      <span>CORRECT ${correctCount} / TRIED ${tried}</span>
+    </div>
+    <div class="progressBar"><div class="progressFill" style="width:${pct}%"></div></div>
+    <div class="card">
+      <p class="question">${renderRich(item.q)}</p>
+      <div class="choices" id="choicesBox"></div>
+      <div class="feedback" id="feedback"></div>
+      <div class="controls">
+        <span></span>
+        <button class="nextBtn" id="nextBtn" disabled>Next question →</button>
+      </div>
+    </div>
+  `;
+
+  const box = document.getElementById('choicesBox');
+  item.choices.forEach((choiceText, idx)=>{
+    const btn = document.createElement('button');
+    btn.className = 'choice';
+    btn.innerHTML = renderRich(choiceText);
+    btn.onclick = ()=>select(idx);
+    box.appendChild(btn);
+  });
+}
+
+function select(idx){
+  const item = RUN[current];
+  const buttons = document.querySelectorAll('#choicesBox .choice');
+  buttons.forEach(b=>b.disabled=true);
+
+  const isCorrect = idx === item.correct;
+  tried++;
+  if(isCorrect) correctCount++;
+  updateSummary();
+
+  buttons[idx].classList.add(isCorrect ? 'correct' : 'wrong');
+
+  const fb = document.getElementById('feedback');
+  fb.classList.add('show', isCorrect ? 'isCorrect' : 'isWrong');
+  fb.innerHTML = isCorrect
+    ? `<span class="label">Correct.</span>`
+    : `<span class="label">Not quite.</span> Give it another look before moving on.`;
+
+  document.getElementById('nextBtn').disabled = false;
+  document.getElementById('nextBtn').onclick = ()=>{
+    current++;
+    render();
+  };
+}
+
+render();
+</script>
+</body>
+</html>
