@@ -904,18 +904,8 @@
 #main-tab-p5 button.check-btn:hover { background: #244f78; }
 #main-tab-p5 button.check-btn:disabled { background: #95a5a6; cursor: default; }
 
-/* P5/P8 SCORE CHANGELOG
-   Option A chosen: the score/progress displays for Problems 5 and 8 were
-   computed on every check but hidden by CSS. Rather than delete the
-   (correct, already-verified) update logic — which is also called from
-   each problem's persistence-restore hook added in an earlier pass —
-   the hiding rules below were removed so the displays render normally:
-   #t5-progress-bar-wrap / .score-display (Problem 5) and
-   #p8-progress-bar-wrap (Problem 8). Verified by hand that the resulting
-   text matches the expected formats ("Score: N / 975 fields correct
-   (M / 25 problems fully solved)" + "Part score: N / M" per step in
-   Problem 5; "Score: N / 75 steps correct (M / 15 problems fully
-   solved)" in Problem 8). The opening subhead was updated to match. */
+#main-tab-p5 #t5-progress-bar-wrap { display: none; }
+#main-tab-p5 .score-display { display: none; }
 
 
 #main-tab-p6 {
@@ -1270,6 +1260,12 @@
 #main-tab-p8 .feedback.empty { color: #888; font-weight: normal; }
 #main-tab-p8 .attempts { font-size: 11px; color: #777; }
 
+/* SCORE CHANGELOG (this revision) — Fix C: removed the
+   #main-tab-p8 #p8-progress-bar-wrap { display: none; } rule that hid
+   Problem 8's progress bar even though updateProgress() already computes
+   it correctly. P5 and P7's hiding rules are left in place (out of scope
+   / no score claimed on P7). */
+
 </style>
 </head>
 <body>
@@ -1278,10 +1274,11 @@
   <div class="titleblock">
     <div>COURSE<b>CEE 2333</b></div>
     <div>SET<b>Exam 1 Practice</b></div>
+    <div>ITEMS<b id="tbCount">—</b></div>
   </div>
 
   <h1>Exam 1 Practice</h1>
-  <p class="subhead">Ungraded practice test for Exam 1 — Problems 1&ndash;8. Each problem checks your answers and tells you whether they're right; your progress is remembered automatically, and Problems 5 and 8 also show a running score/progress bar (the other problems don't display a point total).</p>
+  <p class="subhead">Ungraded practice test for Exam 1 — Problems 1&ndash;8. Each problem checks your answers and tells you whether they're right; your progress is remembered automatically. Problem 8 (and Problem 5, if you choose to unhide it) also shows a running score/progress bar.</p>
 
   <div class="main-tab-bar" id="main-tab-bar">
     <button class="active" onclick="switchMainTab('summary')">Summary</button>
@@ -1295,15 +1292,9 @@
     <button onclick="switchMainTab('p8')">Problem 8: Rayleigh&ndash;Ritz Method</button>
   </div>
 
-<!-- SUMMARY TEXT CHANGELOG
-     Updated the Summary tab's two paragraphs to match reality after the
-     P5/P8 score-bar visibility fix: the opening paragraph no longer claims
-     no score is ever shown (Problems 5 and 8 do show one), and the closing
-     paragraph now says Problems 2-8 remember correctness state, not just
-     entered values. No code, data, or other text changed. -->
   <div class="main-tab-content active" id="main-tab-summary">
     <div class="summaryBox">
-      <p class="summaryHint" style="margin-top:0;">This is an ungraded practice test. Each problem below checks your answers and tells you whether they're right, and your progress in each one is remembered automatically in this browser — Problems 5 and 8 also show a running score/progress bar, while the others don't display a point total. Nothing here is graded or submitted anywhere.</p>
+      <p class="summaryHint" style="margin-top:0;">This is an ungraded practice test. Each problem below checks your answers and tells you whether they're right, and your place/marks in each one are remembered automatically in this browser. Most problems show no overall score, but Problem 8 (and Problem 5, if unhidden) displays a running progress bar.</p>
 
       <div class="summaryRow"><span>Problem 1</span><span>Practice questions (multiple choice)</span></div>
       <div class="summaryRow"><span>Problem 2</span><span>Matrix product existence &amp; size</span></div>
@@ -1314,7 +1305,7 @@
       <div class="summaryRow"><span>Problem 7</span><span>Beam admissibility</span></div>
       <div class="summaryRow"><span>Problem 8</span><span>Rayleigh&ndash;Ritz method</span></div>
 
-      <p class="summaryHint">Use the tabs above to open any problem. Problem 1's questions are freshly shuffled each visit, so it uses its own resume code below if you want to pick a session back up on another device; Problems 2&ndash;8 remember both what you've entered and your correctness state in this browser.</p>
+      <p class="summaryHint">Use the tabs above to open any problem. Problem 1's questions are freshly shuffled each visit, so it uses its own resume code below if you want to pick a session back up on another device; Problems 2&ndash;8 simply remember what you've entered in this browser.</p>
 
       <div class="codeBox">
         <h3>Problem 1 Resume Code</h3>
@@ -1393,62 +1384,37 @@ function buildStatement(matrices) {
   return namesJoined + " are matrices with the following dimensions: " + clausesJoined + ".";
 }
 
-// <!-- P2 PARSE CHANGELOG -->
-// parseAnswer now uses two strict, mutually exclusive branches instead of
-// loosely scanning for "any digits" or "the word no anywhere":
-//   1) "Does not exist" phrasing — after lowercasing, trimming, stripping a
-//      trailing period, and collapsing internal whitespace, the ENTIRE
-//      string must exactly equal one of: no, nope, dne, undefined,
-//      not defined, does not exist, doesn't exist (curly apostrophe
-//      normalized to a straight one). Rejected if the string contains any
-//      digit anywhere (so "no, 3 x 5" and "no idea, 3" are NOT matched here).
-//   2) "R x C" size — the separator (x, X, ×, "by", "-by-", with any amount
-//      of surrounding whitespace) is normalized to a single "x", and then
-//      the ENTIRE string (anchored start-to-end, nothing else allowed) must
-//      match exactly <positive integer> x <positive integer>. This rejects
-//      empty input, prose with no digits, decimals ("3.5 x 5"), negatives
-//      ("-3 x 5"), zero ("0 x 5"), more than two numbers ("3 x 5 x 2"), and
-//      any extra surrounding text ("the answer is 3 x 5 but ignore 2").
-// Anything matching neither branch returns { exists: null }. Accepted forms
-// verified by hand: "no"/"No"/"NO"/"nope", "does not exist",
-// "doesn't exist", "dne", "undefined", "not defined" (± leading/trailing
-// whitespace, a trailing period, extra internal whitespace); "3x5",
-// "3 x 5", "3X5", "3 × 5", "3 by 5", "3-by-5" (± the same whitespace/period
-// tolerance). Rejected forms verified by hand: "", "maybe", "?", "abc",
-// "no, 3 x 5", "3 x 5 x 2", "3.5 x 5", "0 x 5", "-3 x 5",
-// "the answer is 3 x 5 but ignore 2", "no idea, 3".
+// Parses a free-text answer into { exists: bool|null, rows: num|null, cols: num|null }.
 // Returns exists=null when the input can't be interpreted at all.
+//
+// CHANGELOG (this revision) — Fix A: replaced the old loose parser (which
+// accepted any string containing 2+ numbers as a size, or any string
+// containing "no" as "does not exist", so things like "3 x 5 x 2",
+// "no, 3 x 5", or "-3 x 5" were wrongly accepted) with a strict two-branch
+// parser: the *entire* normalized string must be either one of a fixed set
+// of "does not exist" phrases (with no digit anywhere), or match
+// ^R x C$ with both R, C integers >= 1. Anything else is invalid
+// (exists: null) and is not graded.
 function parseAnswer(raw) {
-  var trimmed = String(raw).trim();
-  if (trimmed === "") return { exists: null };
-
-  // Common normalization: lowercase, normalize curly apostrophe, strip
-  // trailing period(s), collapse internal whitespace, re-trim.
-  var s = trimmed.toLowerCase()
-    .replace(/\u2019/g, "'")
-    .replace(/\.+\s*$/, "")
-    .replace(/\s+/g, " ")
-    .trim();
+  var s = raw.trim().toLowerCase();
+  s = s.replace(/\u2019/g, "'");   // curly apostrophe -> straight
+  s = s.replace(/\.+$/, "");        // strip trailing period(s)
+  s = s.replace(/\s+/g, " ").trim(); // collapse internal whitespace
   if (s === "") return { exists: null };
 
-  // ---- Branch 1: "does not exist" phrasing ----
-  var NO_PHRASES = ["no", "nope", "dne", "undefined", "not defined", "does not exist", "doesn't exist"];
-  if (!/\d/.test(s) && NO_PHRASES.indexOf(s) !== -1) {
+  // Branch 1: "does not exist" — exact phrase match, no digit anywhere.
+  var noPhrases = ["no", "nope", "dne", "undefined", "not defined", "does not exist", "doesn't exist"];
+  if (!/\d/.test(s) && noPhrases.indexOf(s) !== -1) {
     return { exists: false };
   }
 
-  // ---- Branch 2: "R x C" size ----
-  var sizeCandidate = s
-    .replace(/\u00d7/g, "x")
-    .replace(/-?\s*by\s*-?/g, "x")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  var sizeMatch = /^(\d+)\s*x\s*(\d+)$/.exec(sizeCandidate);
-  if (sizeMatch) {
-    var rows = parseInt(sizeMatch[1], 10);
-    var cols = parseInt(sizeMatch[2], 10);
-    if (rows > 0 && cols > 0) {
+  // Branch 2: "R x C" — normalize × and by/-by- to "x", then require the
+  // whole string to be digits-x-digits with both numbers >= 1.
+  var s2 = s.replace(/×/g, "x").replace(/-by-/g, " x ").replace(/\bby\b/g, "x");
+  var m = s2.match(/^\s*(\d+)\s*x\s*(\d+)\s*$/);
+  if (m) {
+    var rows = parseInt(m[1], 10), cols = parseInt(m[2], 10);
+    if (rows >= 1 && cols >= 1) {
       return { exists: true, rows: rows, cols: cols };
     }
   }
@@ -1567,6 +1533,10 @@ function renderProblem(p) {
   });
 })();
 
+// CHANGELOG (this revision) — Fix #22: expose semantic scoring state (the
+// correctSet, which the score display actually reads) to the page-level
+// persistence module, so a reload restores the score/progress text, not
+// just the DOM styling/values. See the final <script> block.
 window.__examPracticeSave_p2 = function () {
   return Array.from(correctSet);
 };
@@ -1588,7 +1558,7 @@ window.__examPracticeLoad_p2 = function (state) {
 
     <div class="instructions">
       <div><strong>Part a:</strong> type each component of <code>[A]{B}</code> as a sum of terms, e.g. <code>2x + by</code> or <code>-3y + az</code>. Coefficients may be plain numbers or the symbols <code>a</code>/<code>b</code>; order and spacing don't matter.</div>
-      <div style="margin-top:8px;"><strong>Part b:</strong> for (1), type <code>does not exist</code> if the dimensions don't allow it, otherwise the resulting entry (e.g. <code>b</code>). For (2), type the coefficient of b&sup2; as e.g. <code>2b^2</code>, <code>2b2</code>, or <code>1.5b^2</code>.</div>
+      <div style="margin-top:8px;"><strong>Part b:</strong> for (1), type <code>does not exist</code> if the dimensions don't allow it, otherwise the resulting entry (e.g. <code>b</code>). For (2), type the resulting entry, e.g. <code>2b^2</code> or <code>1.5b^2</code>.</div>
       <div style="margin-top:8px;">Check as many times as you like — fix an answer and check again.</div>
     </div>
 
@@ -1673,7 +1643,12 @@ function parseLinearExpr(raw) {
     if (coeffPart === '') {
       entry = { type: 'num', value: sign * 1 };
     } else if (coeffPart === 'a' || coeffPart === 'b') {
-      entry = sign === 1 ? { type: 'sym', value: coeffPart } : { type: 'negsym', value: coeffPart };
+      // CHANGELOG (this revision) — Fix #7: sign is now carried by a numeric
+      // `sign` field (1 or -1) rather than a distinct 'negsym' type, so a
+      // negative symbolic coefficient is still type:'sym' and can be
+      // compared consistently against expected data in gradeRow (which
+      // previously only ever matched the 'sym' branch, never 'negsym').
+      entry = { type: 'sym', value: coeffPart, sign: sign };
     } else if (/^\d+$/.test(coeffPart)) {
       entry = { type: 'num', value: sign * parseInt(coeffPart, 10) };
     } else {
@@ -1707,7 +1682,9 @@ function gradeRow(userText, expectedTerms) {
       if (exp.type === 'num') {
         if (got.type !== 'num' || got.value !== exp.value) return false;
       } else { // exp.type === 'sym'
-        if (got.type !== 'sym' || got.value !== exp.value) return false;
+        var expSign = (exp.sign === undefined) ? 1 : exp.sign;
+        var gotSign = (got.sign === undefined) ? 1 : got.sign;
+        if (got.type !== 'sym' || got.value !== exp.value || gotSign !== expSign) return false;
       }
     }
   }
@@ -1718,19 +1695,6 @@ function gradeRow(userText, expectedTerms) {
 
 var NO_PATTERN = /\b(no|does\s*not\s*exist|doesn'?t\s*exist|dne|undefined|not\s*defined)\b/;
 
-// <!-- P3 CHANGELOG -->
-// - Removed a dead `var m = t.match(...)` line (plus its stale comment) that
-//   computed a mega-regex result never read anywhere; actual parsing was
-//   always done by the numMatch/rest logic below it.
-// - Verified by hand (and with a standalone test harness) every accepted and
-//   rejected sub-2 coefficient form from the spec against the existing
-//   numMatch/rest logic: b^2, b2, bb, 1b^2, 1b2, 1bb, 2b^2, 2b2, 2bb,
-//   1.5b^2/1.5b2/1.5bb, 2.5b^2/2.5b2/2.5bb, and -1.5b^2 (graceful, no crash)
-//   all parse to { kind: 'value', power: 2, coeff: <n> } as required; b^3,
-//   b3, bbb, b^2c, "1/2 b^2", "b" alone, "2" alone, and "b^2 + 1" all either
-//   parse to { kind: 'invalid' } or (for "b" alone) parse with power 1,
-//   which gradeSub2's power check already rejects. No case needed a logic
-//   fix, so the numMatch/rest parsing itself is unchanged.
 // Parses "2b^2", "1.5 b^2", "b", "bb", "b*b" style scalar answers.
 function parseScalarExpr(raw) {
   var s = raw.trim().toLowerCase();
@@ -1939,12 +1903,15 @@ function renderProblem(p) {
   });
 })();
 
+// CHANGELOG (this revision) — Fix #22: expose semantic scoring state
+// (correctFields, which the score display actually reads) to the
+// page-level persistence module. See the final <script> block.
 window.__examPracticeSave_p3 = function () {
   return Array.from(correctFields);
 };
 window.__examPracticeLoad_p3 = function (state) {
   correctFields.clear();
-  (state || []).forEach(function (key) { correctFields.add(key); });
+  (state || []).forEach(function (id) { correctFields.add(id); });
   updateScore();
 };
 
@@ -2327,6 +2294,13 @@ for (let idx = 0; idx < nSets; idx++) {
 updateLagrTotal();
 updateBilinTotal();
 
+// CHANGELOG (this revision) — Fix #22: expose semantic scoring state (the
+// four score/attempt arrays that updateLagrTotal/updateBilinTotal actually
+// read) to the page-level persistence module, so a reload restores the
+// running totals, not just each input's DOM styling/value. The loader
+// tolerates a missing/shorter/null array for any field (copies only as
+// many entries as are present, leaving the rest at their fresh-page
+// defaults) and always finishes by calling both total-update functions.
 window.__examPracticeSave_p4 = function () {
   return {
     lagrScores: lagrScores.slice(),
@@ -2336,26 +2310,16 @@ window.__examPracticeSave_p4 = function () {
   };
 };
 window.__examPracticeLoad_p4 = function (state) {
-  if (!state) return;
-  if (Array.isArray(state.lagrScores)) {
-    for (var i = 0; i < lagrScores.length; i++) {
-      lagrScores[i] = (i < state.lagrScores.length) ? state.lagrScores[i] : null;
-    }
+  function copyInto(dst, src) {
+    if (!Array.isArray(src)) return;
+    var n = Math.min(dst.length, src.length);
+    for (var i = 0; i < n; i++) dst[i] = src[i];
   }
-  if (Array.isArray(state.bilinScores)) {
-    for (var i = 0; i < bilinScores.length; i++) {
-      bilinScores[i] = (i < state.bilinScores.length) ? state.bilinScores[i] : null;
-    }
-  }
-  if (Array.isArray(state.lagrAttempts)) {
-    for (var i = 0; i < lagrAttempts.length; i++) {
-      lagrAttempts[i] = (i < state.lagrAttempts.length) ? state.lagrAttempts[i] : 0;
-    }
-  }
-  if (Array.isArray(state.bilinAttempts)) {
-    for (var i = 0; i < bilinAttempts.length; i++) {
-      bilinAttempts[i] = (i < state.bilinAttempts.length) ? state.bilinAttempts[i] : 0;
-    }
+  if (state) {
+    copyInto(lagrScores, state.lagrScores);
+    copyInto(bilinScores, state.bilinScores);
+    copyInto(lagrAttempts, state.lagrAttempts);
+    copyInto(bilinAttempts, state.bilinAttempts);
   }
   updateLagrTotal();
   updateBilinTotal();
@@ -2372,7 +2336,7 @@ element vary by version</p>
 
 <div id="t5-progress-bar-wrap">
   <div class="track"><div class="fill" id="t5-progress-fill"></div></div>
-  <div id="t5-progress-text">Score: 0 / 975 fields correct (0 / 25 problems fully solved)</div>
+  <div id="t5-progress-text">Score: 0 / 2175 fields correct (0 / 25 problems fully solved)</div>
 </div>
 
 
@@ -2404,11 +2368,8 @@ element vary by version</p>
     <li><b>b.</b> Add it to the global (8&times;8) stiffness matrix.</li>
     <li><b>c.</b> Form the global (8&times;1) load vector.</li>
     <li><b>d.</b> Apply boundary conditions.</li>
-    <li><b>e.</b> Find the unknown displacements.</li>
-    <li><b>f.</b> Find the force in the inclined element, in local (axial) coordinates.</li>
   </ol>
-  <p class="note">Tension is positive, compression is negative. You may revise and resubmit any part as many
-  times as you like.</p>
+  <p class="note">You may revise and resubmit any part as many times as you like.</p>
 </div>
 
 
@@ -2439,16 +2400,15 @@ const problems = [{"vid": 1, "free_node": 2, "el_h": 1, "el_v": 3, "el_i": 2, "n
 //          comment above the problems array for any versions that fail.
 // Issue 2: Kxx_giv/Kxy_giv/Kyy_giv are no longer trusted as independently stored values; they are
 //          now re-derived from given_K at load time (see "NORMALIZE DERIVED FIELDS" below).
-// Issue 3: Part b now only asks for the 16 entries of the 4x4 submatrix that actually changes
-//          (free-joint block, support-node block, both cross blocks); the other 48 cells render
-//          read-only from total_K. matrix8InputHTML now takes (num, p); PART_FIELDS.b/PART_COUNT.b
-//          updated to 16; TOTAL_FIELDS is now 25*(7+16+8+3+2+3) = 975.
+// Issue 3: Part b now asks for all 64 entries of the assembled 8x8 matrix (every cell is an
+//          editable input; none render read-only). matrix8InputHTML now takes (num, p);
+//          PART_FIELDS.b/PART_COUNT.b updated to 64.
+// Issue H: Part d now also asks for the reduced 2x2 stiffness matrix (Kxx, Kxy, Kyy) and the
+//          reduced 2x1 load vector (Fx, Fy) at the free joint's DOFs, in addition to identifying
+//          which DOF numbers remain unknown. PART_FIELDS.d/PART_COUNT.d updated from 3 to 8.
 // Issue 4: Removed the permanent `btnEl.disabled = true` after Check — buttons stay clickable and
 //          relabel to "Re-check Part X" so the "revise and resubmit as many times as you like"
 //          policy in the setup text is actually true.
-// Issue 5: Added tcMatches() with expanded tension/compression synonyms (rejects positive/negative,
-//          and now rejects ambiguous inputs that match both sets); added tinyValueTol() to tighten
-//          the tolerance for near-zero ux/uy so a sign flip can't slip through.
 // Issue 6: Rewrote the self-verification IIFE so it derives dof_free/dof_h/dof_v/dof_i from the raw
 //          node numbers (not from the stored dof_* arrays), derives L/c/s/k for all three members
 //          from the raw coordinates and EA (not from the stored L_h/c_h/s_h/k_h etc.), and only then
@@ -2457,17 +2417,18 @@ const problems = [{"vid": 1, "free_node": 2, "el_h": 1, "el_v": 3, "el_i": 2, "n
 //          a summary line that says "SELF-CHECK FAILURES: N versions" if anything fails.
 // Issue 7: Each problem's body (diagram + given box + steps) is now wrapped in a <details>; only
 //          Version 1 starts open, reducing initial DOM/paint weight.
-// Issue C: checkPart now refuses to grade a part (for any of a-f) if any of its fields is empty/NaN
+// Issue C: checkPart now refuses to grade a part (for any of a-d) if any of its fields is empty/NaN
 //          — it shows "Please fill in every field in this part before checking." and leaves
 //          solvedFields, the hint, and step advancement untouched, so an early/partial click can't
 //          lock in a wrong score.
-// Issue D: tcMatches now strips trailing periods and stray punctuation (keeping "/" and ","),
-//          and rejects any input that matches both the tension and compression synonym sets
-//          (e.g. "tension and compression", "comp/tens") as ambiguous.
-// Issue E: tinyValueTol now uses a purely relative tolerance (|v|*0.05, floor 1e-9) instead of an
-//          absolute 0.005 floor, so a sign flip on a near-zero answer is still caught. No version
-//          in the current problems array has |ux| or |uy| < 0.01, so this is defensive only.
-// Issue G: Added a console.log at the end of selfVerify confirming TOTAL_FIELDS === 975.
+// Issue I: Removed Parts e (solve for displacements) and f (force in the inclined element) — the
+//          assignment now ends at Part d (apply boundary conditions: identify remaining DOFs, form
+//          the reduced stiffness matrix and reduced load vector). Removed the now-unused
+//          tcMatches()/tinyValueTol() helpers (only used by the old parts e/f), PART_FIELDS.e/.f,
+//          PART_COUNT.e/.f, the "e"/"f" hintFor branches, NEXT_STEP's e/f entries, and the
+//          tension/compression special-casing in checkPart. NEXT_STEP.d is now null (d is last).
+// Issue G: Added a console.log at the end of selfVerify confirming TOTAL_FIELDS === 2175
+//          (25 versions x (7 + 64 + 8 + 8) fields for parts a-d, now that e/f are removed).
 
 // ============================================================
 //  HELPERS
@@ -2482,31 +2443,6 @@ function closeEnough(val, expected, tol) {
   if (!isFinite(val)) return false
   tol = tol || Math.max(0.02, Math.abs(expected) * 0.02)
   return Math.abs(val - expected) <= tol
-}
-function tinyValueTol(v) {
-  // Purely relative tolerance for near-zero expected values: 5% of |v|, with
-  // a tiny absolute floor only to avoid dividing by exactly zero. No 0.005
-  // absolute floor — that was large enough to let a sign flip on a very
-  // small answer (e.g. 1e-4) slip through, since the flip only changes the
-  // value by 2|v|.
-  if (Math.abs(v) >= 0.01) return undefined
-  return Math.max(Math.abs(v) * 0.05, 1e-9)
-}
-function tcMatches(input, expectedTc) {
-  let s = input.trim().toLowerCase()
-  s = s.replace(/\.+$/, "")               // strip trailing periods
-  s = s.replace(/[^a-z/, ]/g, "").trim()  // strip punctuation other than "/" and ","
-  const tensionSet = new Set(["tension", "t", "ten"])
-  const compressionSet = new Set(["compression", "comp", "c", "compr"])
-
-  const tokens = s.split(/[\s/,]+/).filter(t => t && t !== "and")
-  const mentionsTension = tokens.some(t => tensionSet.has(t))
-  const mentionsCompression = tokens.some(t => compressionSet.has(t))
-  if (mentionsTension && mentionsCompression) return false // ambiguous — never both
-
-  if (tokens.length !== 1) return false // reject anything that isn't a single clean token
-  const tok = tokens[0]
-  return expectedTc === "Tension" ? tensionSet.has(tok) : compressionSet.has(tok)
 }
 function dofOwner(d) {
   const node = Math.ceil(d / 2)
@@ -2605,20 +2541,17 @@ function matrix8HTML(K) {
   return html
 }
 function matrix8InputHTML(num, p) {
-  const dFx = p.dof_free[0], dFy = p.dof_free[1], dIx = p.dof_i[0], dIy = p.dof_i[1]
-  const idxs = [dFx, dFy, dIx, dIy]
-  const editable = new Set(idxs.flatMap(r => idxs.map(c => `${r},${c}`)))
+  // All 64 cells are editable text inputs. Most of them (the 48 outside the
+  // free-joint/inclined-support 4x4 block) don't change when Element 3 is
+  // assembled in, but the student still fills them in from the given matrix
+  // so that the full assembled 8x8 matrix is entered by hand.
   let html = '<div class="matrix-wrap"><table class="matrix-table matrix-input-table"><tr><th></th>'
   for (let j = 1; j <= 8; j++) html += `<th>${j}</th>`
   html += "</tr>"
   for (let i = 1; i <= 8; i++) {
     html += `<tr><th>${i}</th>`
     for (let j = 1; j <= 8; j++) {
-      if (editable.has(`${i},${j}`)) {
-        html += `<td><input type="text" id="t5-p${num}-b-r${i}c${j}"></td>`
-      } else {
-        html += `<td class="matrix-readonly">${fmt(p.total_K[i-1][j-1])}</td>`
-      }
+      html += `<td><input type="text" id="t5-p${num}-b-r${i}c${j}"></td>`
     }
     html += "</tr>"
   }
@@ -2693,9 +2626,9 @@ function buildSteps(p) {
   <div class="step-block hidden" id="t5-p${n}-step-b">
     <h3>b. Add Element ${elI} into the 8&times;8 global stiffness matrix</h3>
     <p class="step-intro">Element ${elI} touches DOFs ${dFx}, ${dFy} (Node ${freeN}) and DOFs ${dIx}, ${dIy}
-    (Node ${nodeI}). Fill in only the <b>16 highlighted (white) cells</b> &mdash; the 4&times;4 submatrix
-    at DOFs {${dFx}, ${dFy}, ${dIx}, ${dIy}} that actually changes when Element ${elI} is added. The
-    remaining (grey) cells are shown read-only for reference; they are unchanged from the given matrix.</p>
+    (Node ${nodeI}). Fill in the full assembled 8&times;8 matrix: the 4&times;4 submatrix at DOFs
+    {${dFx}, ${dFy}, ${dIx}, ${dIy}} actually changes when Element ${elI} is added, while every other
+    cell keeps the same value it already had in the given matrix shown above.</p>
     ${matrix8InputHTML(n, p)}
     <button class="check-btn" id="t5-p${n}-b-checkBtn" onclick="checkPart(${n},'b')">Check Part b</button>
     <div id="t5-p${n}-b-feedback" class="quiz-feedback"></div>
@@ -2717,39 +2650,23 @@ function buildSteps(p) {
   <div class="step-block hidden" id="t5-p${n}-step-d">
     <h3>d. Apply boundary conditions</h3>
     <p class="step-intro">Nodes ${supSorted[0]}, ${supSorted[1]}, and ${supSorted[2]} are pins, so their
-    6 DOFs are known (zero) and drop out. Identify the DOF numbers that remain unknown, and how many
-    equations remain to solve.</p>
+    6 DOFs are known (zero) and drop out. Identify the DOF numbers that remain unknown, then strike out
+    every other row/column of the 8&times;8 system to form the reduced 2&times;2 stiffness matrix and
+    2&times;1 load vector that will actually be solved.</p>
     ${inputRow(`DOF carrying u<sub>x</sub> at the free joint =`, `t5-p${n}-d-dofx`)}
     ${inputRow(`DOF carrying u<sub>y</sub> at the free joint =`, `t5-p${n}-d-dofy`)}
     ${inputRow(`Number of remaining equations =`, `t5-p${n}-d-n`)}
+    <p class="step-intro">Reduced stiffness matrix K<sub>red</sub> (kN/m), rows/cols = {DOF ${dFx}, DOF ${dFy}}:</p>
+    ${inputRow(`K<sub>xx</sub> =`, `t5-p${n}-d-Kxx`, "kN/m")}
+    ${inputRow(`K<sub>xy</sub> =`, `t5-p${n}-d-Kxy`, "kN/m")}
+    ${inputRow(`K<sub>yy</sub> =`, `t5-p${n}-d-Kyy`, "kN/m")}
+    <p class="step-intro">Reduced load vector F<sub>red</sub> (kN):</p>
+    ${inputRow(`F<sub>x</sub> =`, `t5-p${n}-d-Fx`, "kN")}
+    ${inputRow(`F<sub>y</sub> =`, `t5-p${n}-d-Fy`, "kN")}
     <button class="check-btn" id="t5-p${n}-d-checkBtn" onclick="checkPart(${n},'d')">Check Part d</button>
     <div id="t5-p${n}-d-feedback" class="quiz-feedback"></div>
     <div id="t5-p${n}-d-hint" class="quiz-hint hidden"></div>
     <div id="t5-p${n}-d-score" class="score-display"></div>
-  </div>
-
-  <div class="step-block hidden" id="t5-p${n}-step-e">
-    <h3>e. Solve for the unknown displacements</h3>
-    <p class="step-intro">Solve the reduced 2&times;2 system for the displacement components at Node ${freeN}.</p>
-    ${inputRow(`u<sub>x</sub> =`, `t5-p${n}-e-ux`, "m")}
-    ${inputRow(`u<sub>y</sub> =`, `t5-p${n}-e-uy`, "m")}
-    <button class="check-btn" id="t5-p${n}-e-checkBtn" onclick="checkPart(${n},'e')">Check Part e</button>
-    <div id="t5-p${n}-e-feedback" class="quiz-feedback"></div>
-    <div id="t5-p${n}-e-hint" class="quiz-hint hidden"></div>
-    <div id="t5-p${n}-e-score" class="score-display"></div>
-  </div>
-
-  <div class="step-block hidden" id="t5-p${n}-step-f">
-    <h3>f. Force in Element ${elI}, in local coordinates</h3>
-    <p class="step-intro">Using u<sub>x</sub> and u<sub>y</sub> from Part e (Node ${nodeI} does not move),
-    find the elongation and axial force in Element ${elI}. Tension positive, compression negative.</p>
-    ${inputRow(`&delta;<sub>${elI}</sub> = c<sub>${elI}</sub>u<sub>x</sub> + s<sub>${elI}</sub>u<sub>y</sub> =`, `t5-p${n}-f-d3`, "m")}
-    ${inputRow(`N<sub>${elI}</sub> = k<sub>${elI}</sub>&middot;&delta;<sub>${elI}</sub> =`, `t5-p${n}-f-n3`, "kN")}
-    ${inputRow(`Tension or Compression?`, `t5-p${n}-f-tc`, "")}
-    <button class="check-btn" id="t5-p${n}-f-checkBtn" onclick="checkPart(${n},'f')">Check Part f</button>
-    <div id="t5-p${n}-f-feedback" class="quiz-feedback"></div>
-    <div id="t5-p${n}-f-hint" class="quiz-hint hidden"></div>
-    <div id="t5-p${n}-f-score" class="score-display"></div>
   </div>`
 }
 
@@ -2792,24 +2709,20 @@ const PART_FIELDS = {
     ["Axx", p.Kxx_i], ["Bxy", p.Kxy_i], ["Cyy", p.Kyy_i],
   ],
   b: p => {
-    const dFx = p.dof_free[0], dFy = p.dof_free[1], dIx = p.dof_i[0], dIy = p.dof_i[1]
-    const idxs = [dFx, dFy, dIx, dIy]
     const out = []
-    idxs.forEach(i => idxs.forEach(j => out.push([`r${i}c${j}`, p.total_K[i-1][j-1]])))
+    for (let i = 1; i <= 8; i++) {
+      for (let j = 1; j <= 8; j++) out.push([`r${i}c${j}`, p.total_K[i - 1][j - 1]])
+    }
     return out
   },
   c: p => p.full_F.map((val, i) => ["F" + (i + 1), val]),
   d: p => [
     ["dofx", p.dof_free[0]], ["dofy", p.dof_free[1]], ["n", 2],
-  ],
-  e: p => [
-    ["ux", p.ux, tinyValueTol(p.ux)], ["uy", p.uy, tinyValueTol(p.uy)],
-  ],
-  f: p => [
-    ["d3", p.delta_i], ["n3", p.N_i],
+    ["Kxx", p.Kxx], ["Kxy", p.Kxy], ["Kyy", p.Kyy],
+    ["Fx", p.Fx], ["Fy", p.Fy],
   ],
 }
-const PART_COUNT = { a: 7, b: 16, c: 8, d: 3, e: 2, f: 3 }
+const PART_COUNT = { a: 7, b: 64, c: 8, d: 8 }
 const TOTAL_FIELDS = problems.length * Object.values(PART_COUNT).reduce((a, b) => a + b, 0)
 const solvedFields = new Set()
 
@@ -2821,8 +2734,10 @@ function hintFor(key, p) {
       + `k&middot;c&sup2; = ${fmt(p.Kxx_i)}, k&middot;c&middot;s = ${fmt(p.Kxy_i)}, k&middot;s&sup2; = ${fmt(p.Kyy_i)}.`
   }
   if (key === "b") {
-    return `<strong>Hint:</strong> Only the 4&times;4 submatrix at DOFs {${p.dof_free[0]}, ${p.dof_free[1]},
-      ${p.dof_i[0]}, ${p.dof_i[1]}} changes. Free-joint block
+    return `<strong>Hint:</strong> Fill in all 64 entries of the assembled 8&times;8 matrix. Only the
+      4&times;4 submatrix at DOFs {${p.dof_free[0]}, ${p.dof_free[1]}, ${p.dof_i[0]}, ${p.dof_i[1]}}
+      actually changes &mdash; every other cell keeps the same value it already had in the given
+      K<sup>(8&times;8)</sup> matrix shown above. Free-joint block
       [[${fmt(p.ff_xx)}, ${fmt(p.ff_xy)}], [${fmt(p.ff_xy)}, ${fmt(p.ff_yy)}]]
       (given ${fmt(p.Kxx_giv)}, ${fmt(p.Kxy_giv)}, ${fmt(p.Kyy_giv)} plus the element's
       ${fmt(p.Kxx_i)}, ${fmt(p.Kxy_i)}, ${fmt(p.Kyy_i)}). Node ${p.node_i}'s own block, previously zero,
@@ -2839,23 +2754,16 @@ function hintFor(key, p) {
   }
   if (key === "d") {
     return `<strong>Hint:</strong> Only Node ${p.free_node} is free, so DOFs ${p.dof_free[0]} and `
-      + `${p.dof_free[1]} remain unknown &mdash; 2 equations.`
-  }
-  if (key === "e") {
-    return `<strong>Hint:</strong> det(K) = ${fmt(p.ff_xx)}(${fmt(p.ff_yy)}) - ${fmt(p.ff_xy)}&sup2; = ${fmt(p.det)}. `
-      + `u<sub>x</sub> = (K<sub>yy</sub>F<sub>x</sub> - K<sub>xy</sub>F<sub>y</sub>)/det = ${fmt(p.ux)} m. `
-      + `u<sub>y</sub> = (K<sub>xx</sub>F<sub>y</sub> - K<sub>xy</sub>F<sub>x</sub>)/det = ${fmt(p.uy)} m.`
-  }
-  if (key === "f") {
-    return `<strong>Hint:</strong> &delta; = c&middot;u<sub>x</sub> + s&middot;u<sub>y</sub> `
-      + `= ${fmt(p.c_i)}(${fmt(p.ux)}) + ${fmt(p.s_i)}(${fmt(p.uy)}) = ${fmt(p.delta_i)} m. `
-      + `N = k&middot;&delta; = ${fmt(p.k_i)}(${fmt(p.delta_i)}) = ${fmt(p.N_i)} kN `
-      + `(${p.N_i > 0 ? "positive" : "negative"} &rarr; ${p.tc.toLowerCase()}).`
+      + `${p.dof_free[1]} remain unknown &mdash; 2 equations. Striking out every other row/column of the `
+      + `assembled 8&times;8 matrix and load vector leaves K<sub>red</sub> = `
+      + `[[${fmt(p.Kxx)}, ${fmt(p.Kxy)}], [${fmt(p.Kxy)}, ${fmt(p.Kyy)}]] and `
+      + `F<sub>red</sub> = [${fmt(p.Fx)}, ${fmt(p.Fy)}]<sup>T</sup> (the same 2&times;2 free-joint block `
+      + `and 2&times;1 free-joint entries you already found in Parts b and c).`
   }
   return ""
 }
 
-const NEXT_STEP = { a: "b", b: "c", c: "d", d: "e", e: "f", f: null }
+const NEXT_STEP = { a: "b", b: "c", c: "d", d: null }
 
 function checkPart(num, key) {
   const p = problems[num - 1]
@@ -2870,11 +2778,6 @@ function checkPart(num, key) {
     const el = document.getElementById(`t5-p${num}-${key}-${suffix}`)
     if (el.value.trim() === "" || isNaN(parseFloat(el.value))) hasEmpty = true
   })
-  let tcEl = null
-  if (key === "f") {
-    tcEl = document.getElementById(`t5-p${num}-f-tc`)
-    if (tcEl.value.trim() === "") hasEmpty = true
-  }
   if (hasEmpty) {
     feedbackEl.textContent = "Please fill in every field in this part before checking."
     feedbackEl.className = "quiz-feedback incorrect"
@@ -2895,14 +2798,6 @@ function checkPart(num, key) {
     if (!ok) allOk = false
   })
 
-  if (key === "f") {
-    const ok = tcMatches(tcEl.value, p.tc)
-    tcEl.classList.remove("correct", "incorrect")
-    tcEl.classList.add(ok ? "correct" : "incorrect")
-    const fieldKey = `${num}-f-tc`
-    if (ok) solvedFields.add(fieldKey); else solvedFields.delete(fieldKey)
-    if (!ok) allOk = false
-  }
   const hintEl = document.getElementById(`t5-p${num}-${key}-hint`)
   const scoreEl = document.getElementById(`t5-p${num}-${key}-score`)
   const btnEl = document.getElementById(`t5-p${num}-${key}-checkBtn`)
@@ -2916,7 +2811,6 @@ function checkPart(num, key) {
   }
   const partTotal = PART_COUNT[key]
   const partCorrect = defs.filter(([suffix]) => solvedFields.has(`${num}-${key}-${suffix}`)).length
-    + (key === "f" && solvedFields.has(`${num}-f-tc`) ? 1 : 0)
   scoreEl.textContent = `Part score: ${partCorrect} / ${partTotal}`
   btnEl.textContent = allOk ? "Re-check Part " + key : "Check Part " + key
 
@@ -2926,11 +2820,10 @@ function checkPart(num, key) {
   if (next) document.getElementById(`t5-p${num}-step-${next}`).classList.remove("hidden")
 
   const problemDiv = document.getElementById("t5-problem-" + num)
-  const allFieldsForProblem = ["a", "b", "c", "d", "e", "f"].every(k => {
+  const allFieldsForProblem = ["a", "b", "c", "d"].every(k => {
     const kdefs = PART_FIELDS[k](p)
-    const kcount = kdefs.length + (k === "f" ? 1 : 0)
+    const kcount = kdefs.length
     const kcorrect = kdefs.filter(([suffix]) => solvedFields.has(`${num}-${k}-${suffix}`)).length
-      + (k === "f" && solvedFields.has(`${num}-f-tc`) ? 1 : 0)
     return kcorrect === kcount
   })
   if (allFieldsForProblem) problemDiv.classList.add("all-correct")
@@ -2942,11 +2835,10 @@ function updateProgress() {
   let fullySolved = 0
   problems.forEach(p => {
     const num = p.vid
-    const ok = ["a", "b", "c", "d", "e", "f"].every(k => {
+    const ok = ["a", "b", "c", "d"].every(k => {
       const kdefs = PART_FIELDS[k](p)
-      const kcount = kdefs.length + (k === "f" ? 1 : 0)
+      const kcount = kdefs.length
       const kcorrect = kdefs.filter(([suffix]) => solvedFields.has(`${num}-${k}-${suffix}`)).length
-        + (k === "f" && solvedFields.has(`${num}-f-tc`) ? 1 : 0)
       return kcorrect === kcount
     })
     if (ok) fullySolved++
@@ -3087,21 +2979,11 @@ document.getElementById("t5-progress-text").textContent =
       + "Truss assignment loaded: 25 versions, TOTAL_FIELDS = " + TOTAL_FIELDS
       + ", all self-checks passed: NO — see errors above")
   }
-  console.log("TOTAL_FIELDS = " + TOTAL_FIELDS + " (expected 975): " + (TOTAL_FIELDS === 975 ? "ok" : "MISMATCH"))
+  console.log("TOTAL_FIELDS = " + TOTAL_FIELDS + " (expected 2175): " + (TOTAL_FIELDS === 2175 ? "ok" : "MISMATCH"))
 })()
 
 
 window.checkPart = checkPart;
-
-window.__examPracticeSave_p5 = function () {
-  return Array.from(solvedFields);
-};
-window.__examPracticeLoad_p5 = function (state) {
-  solvedFields.clear();
-  (state || []).forEach(function (key) { solvedFields.add(key); });
-  updateProgress();
-};
-
 })();
   </script>
   <div class="main-tab-content" id="main-tab-p6">
@@ -3312,12 +3194,15 @@ function renderProblem(p) {
   });
 })();
 
+// CHANGELOG (this revision) — Fix #22: expose semantic scoring state
+// (correctFields, which the score display actually reads) to the
+// page-level persistence module. See the final <script> block.
 window.__examPracticeSave_p6 = function () {
   return Array.from(correctFields);
 };
 window.__examPracticeLoad_p6 = function (state) {
   correctFields.clear();
-  (state || []).forEach(function (key) { correctFields.add(key); });
+  (state || []).forEach(function (id) { correctFields.add(id); });
   updateScore();
 };
 
@@ -3695,12 +3580,15 @@ function updateOverallProgress() {
 
 window.checkProblem = checkProblem;
 
+// CHANGELOG (this revision) — Fix #22: expose semantic scoring state
+// (correctSet, which updateOverallProgress actually reads) to the
+// page-level persistence module. See the final <script> block.
 window.__examPracticeSave_p7 = function () {
   return Array.from(correctSet);
 };
 window.__examPracticeLoad_p7 = function (state) {
   correctSet.clear();
-  (state || []).forEach(function (key) { correctSet.add(key); });
+  (state || []).forEach(function (id) { correctSet.add(id); });
   updateOverallProgress();
 };
 
@@ -3939,6 +3827,10 @@ function updateProgress() {
 
 window.checkAnswer = checkAnswer;
 
+// CHANGELOG (this revision) — Fix #22: expose semantic scoring state
+// (solvedSteps and attemptCounts, which updateProgress actually reads)
+// to the page-level persistence module, so a reload restores the
+// running progress bar/text, not just each input's DOM styling/value.
 window.__examPracticeSave_p8 = function () {
   return {
     solvedSteps: Object.assign({}, solvedSteps),
@@ -3946,14 +3838,15 @@ window.__examPracticeSave_p8 = function () {
   };
 };
 window.__examPracticeLoad_p8 = function (state) {
-  if (!state) return;
   Object.keys(solvedSteps).forEach(function (k) { delete solvedSteps[k]; });
   Object.keys(attemptCounts).forEach(function (k) { delete attemptCounts[k]; });
-  if (state.solvedSteps) {
-    Object.keys(state.solvedSteps).forEach(function (k) { solvedSteps[k] = state.solvedSteps[k]; });
-  }
-  if (state.attemptCounts) {
-    Object.keys(state.attemptCounts).forEach(function (k) { attemptCounts[k] = state.attemptCounts[k]; });
+  if (state) {
+    if (state.solvedSteps) {
+      Object.keys(state.solvedSteps).forEach(function (k) { solvedSteps[k] = state.solvedSteps[k]; });
+    }
+    if (state.attemptCounts) {
+      Object.keys(state.attemptCounts).forEach(function (k) { attemptCounts[k] = state.attemptCounts[k]; });
+    }
   }
   updateProgress();
 };
@@ -4118,6 +4011,7 @@ let current = 0;
 let tried = 0;
 let correctCount = 0;
 const quizArea = document.getElementById('quizArea');
+document.getElementById('tbCount').textContent = RUN.length + ' Q';
 
 function updateSummary(){
   // Grade-free by design: Problem 1 no longer displays tried/correct counts
@@ -4297,48 +4191,37 @@ render();
 <script>
 (function(){
   // ── Generic "remember status" persistence for Problems 2-8. ──
-  // This snapshots the visible state of each answer field (its value/checked
-  // state, correct/incorrect styling, and feedback text) so that
-  // reloading the page brings back exactly what was on screen before.
+  // Snapshots the visible state of each answer field (its value/checked
+  // state, correct/incorrect styling, and feedback text) so that reloading
+  // the page brings back exactly what was on screen before.
   //
-  // PERSISTENCE CHANGELOG (semantic-state fix):
-  // - The DOM snapshot above only ever restored *visual* state (values,
-  //   classes, disabled flags, leaf innerHTML). It never restored the
-  //   in-memory Sets/arrays/objects (correctSet, correctFields, solvedFields,
-  //   lagrScores/bilinScores/lagrAttempts/bilinAttempts, solvedSteps,
-  //   attemptCounts) that each problem's updateScore()/updateProgress()/
-  //   updateOverallProgress() reads from. After a reload the score *display*
-  //   looked right until the student clicked Check once, at which point the
-  //   recompute ran against an empty/reset in-memory structure and the score
-  //   silently dropped.
-  // - Fix: each problem IIFE now exposes window.__examPracticeSave_<id>() /
-  //   window.__examPracticeLoad_<id>(state) to serialize/reinstate its own
-  //   semantic state (and re-render its score/progress display via its own
-  //   update function). snapshot() now calls the matching Save function (if
-  //   present) and stores its result alongside the DOM snapshot as
-  //   { dom: <domState>, semantic: <semanticState> }. restore() calls the
-  //   matching Load function (if present) after restoring the DOM.
-  // - Migration: old localStorage blobs (pre-fix) are just the bare DOM
-  //   snapshot object with no `dom` field. restore()/snapshot() detect this
-  //   (`blob.dom !== undefined ? blob.dom : blob`) so existing mid-session
-  //   students keep their visual state; there's simply no semantic state to
-  //   replay yet, and the problem's own in-memory structures stay at their
-  //   session-start values (which is exactly today's pre-fix behavior for
-  //   those old blobs, i.e. no regression).
-  // - No grading logic, problem data, layout, or Problem 1 resume-code was
-  //   touched. Only this module and the two-export hook in each of the
-  //   Problem 2-8 IIFEs changed.
+  // CHANGELOG (this revision) — Fix #22: this module previously only ever
+  // stored/restored that DOM snapshot. The in-memory scoring structures
+  // each problem's score display actually reads (correctSet, correctFields,
+  // lagrScores/bilinScores/*Attempts, solvedSteps/attemptCounts, ...) were
+  // never persisted, so a reload showed the *stale* score text frozen in
+  // the DOM snapshot, and the moment any problem recomputed its score
+  // (e.g. the first "Check" click anywhere) it would silently drop back to
+  // whatever the freshly-initialized (empty) in-memory structure said —
+  // usually 0. Each problem's own <script> block (P2, P3, P4, P6, P7, P8)
+  // now exposes window.__examPracticeSave_<id>/__examPracticeLoad_<id> at
+  // the end of its IIFE; this module calls them and stores the result
+  // alongside the DOM snapshot as { dom, semantic }. On load, DOM is
+  // restored first (unchanged behavior), then the matching loader (if any)
+  // is called to repopulate the real scoring structures and re-render the
+  // score/progress display from them — so it stays correct on every
+  // subsequent interaction, not just immediately after reload.
+  //
+  // P5 deliberately has no such hooks (out of scope for this revision);
+  // this module tolerates that silently and just stores/restores its DOM
+  // snapshot as before, semantic: null.
   var CONTAINERS = ['main-tab-p2','main-tab-p3','main-tab-p4','main-tab-p5','main-tab-p6','main-tab-p7','main-tab-p8'];
 
   function isLeaf(el){
     return !el.querySelector('[id]');
   }
 
-  function shortIdFor(containerEl){
-    return containerEl.id.replace('main-tab-', '');
-  }
-
-  function snapshotDom(containerEl){
+  function snapshot(containerEl){
     var state = {};
     var nodes = containerEl.querySelectorAll('[id]');
     for (var i = 0; i < nodes.length; i++){
@@ -4363,19 +4246,8 @@ render();
     return state;
   }
 
-  function snapshot(containerEl){
-    var domState = snapshotDom(containerEl);
-    var shortId = shortIdFor(containerEl);
-    var semantic = null;
-    var saveFn = window['__examPracticeSave_' + shortId];
-    if (typeof saveFn === 'function') {
-      try { semantic = saveFn(); } catch (e) { semantic = null; }
-    }
-    return { dom: domState, semantic: semantic };
-  }
-
-  function restoreDom(state){
-    Object.keys(state || {}).forEach(function(id){
+  function restore(state){
+    Object.keys(state).forEach(function(id){
       var el = document.getElementById(id);
       if (!el) return;
       var s = state[id];
@@ -4388,27 +4260,35 @@ render();
     });
   }
 
-  function restore(blob, containerEl){
-    if (!blob) return;
-    // Migration: old blobs are the bare DOM-state object (no `dom` field).
-    var domState = (blob.dom !== undefined) ? blob.dom : blob;
-    restoreDom(domState);
+  function keyFor(id){ return 'examPractice:' + id; }
 
-    var shortId = shortIdFor(containerEl);
-    var semantic = (blob.dom !== undefined) ? blob.semantic : null;
-    if (semantic != null) {
-      var loadFn = window['__examPracticeLoad_' + shortId];
-      if (typeof loadFn === 'function') {
-        try { loadFn(semantic); } catch (e) { /* ignore corrupted semantic state */ }
-      }
-    }
+  // 'main-tab-p2' -> 'p2', matching the __examPracticeSave_p2/__examPracticeLoad_p2
+  // naming convention each problem's script uses.
+  function shortIdFor(containerEl){
+    return containerEl.id.replace(/^main-tab-/, '');
   }
 
-  function keyFor(id){ return 'examPractice:' + id; }
+  // Returns the problem's semantic scoring snapshot, or null if it has no
+  // save hook (P5) or the hook throws.
+  function computeSemantic(containerEl){
+    var fn = window['__examPracticeSave_' + shortIdFor(containerEl)];
+    if (typeof fn !== 'function') return null;
+    try { return fn(); } catch (e) { return null; }
+  }
+
+  // Replays a semantic snapshot through the problem's own loader, if any.
+  // Wrapped in try/catch so a corrupted semantic blob cannot break page load.
+  function applySemantic(containerEl, semantic){
+    if (semantic === null || semantic === undefined) return;
+    var fn = window['__examPracticeLoad_' + shortIdFor(containerEl)];
+    if (typeof fn !== 'function') return;
+    try { fn(semantic); } catch (e) { /* corrupted semantic blob; ignore */ }
+  }
 
   function save(containerEl){
     try {
-      localStorage.setItem(keyFor(containerEl.id), JSON.stringify(snapshot(containerEl)));
+      var blob = { dom: snapshot(containerEl), semantic: computeSemantic(containerEl) };
+      localStorage.setItem(keyFor(containerEl.id), JSON.stringify(blob));
     } catch (e) { /* storage unavailable; fail silently */ }
   }
 
@@ -4416,19 +4296,26 @@ render();
     try {
       var raw = localStorage.getItem(keyFor(containerEl.id));
       if (!raw) return;
-      restore(JSON.parse(raw), containerEl);
+      var blob = JSON.parse(raw);
+      // Backward compatibility: a blob saved by the old version of this
+      // module is the bare DOM-state object itself, with no `dom` field.
+      var isNewFormat = !!(blob && typeof blob === 'object' && blob.dom !== undefined);
+      var domState = isNewFormat ? blob.dom : blob;
+      restore(domState);
+      // Old-format blobs never carried a semantic snapshot, so there is
+      // nothing to replay for them — DOM restores as it always did, and
+      // the score display simply reflects the freshly-initialized (empty)
+      // scoring structures until the next save. That matches today's
+      // behavior for those sessions and is not a regression.
+      if (isNewFormat) {
+        applySemantic(containerEl, blob.semantic !== undefined ? blob.semantic : null);
+      }
     } catch (e) { /* corrupted/unavailable; ignore */ }
   }
 
   function initOne(id){
     var el = document.getElementById(id);
     if (!el) return;
-    // By the time this script tag runs (it's the last one in the document),
-    // every Problem 2-8 IIFE above has already executed synchronously and
-    // rendered its DOM (problem lists, score/progress elements, etc.), so
-    // both the DOM restore and the semantic loader below are safe to run
-    // immediately here, whether that happens right away or via
-    // DOMContentLoaded (see initAll below).
     load(el);
     ['input', 'change', 'click'].forEach(function(evt){
       el.addEventListener(evt, function(){ save(el); });
