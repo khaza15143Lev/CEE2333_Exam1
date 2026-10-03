@@ -1260,6 +1260,11 @@
 #main-tab-p8 .feedback.incorrect { color: #b5432c; }
 #main-tab-p8 .feedback.empty { color: #888; font-weight: normal; }
 #main-tab-p8 .attempts { font-size: 11px; color: #777; }
+/* CHANGELOG (this revision): visible correct/incorrect styling on the input
+   field itself (checkAnswer adds/removes these classes on the input, not
+   just on the .feedback span). */
+#main-tab-p8 .step-row input.correct   { border-color: #3a7d44; background: #eaf5ec; }
+#main-tab-p8 .step-row input.incorrect { border-color: #b5432c; background: #fbeceb; }
 /* CHANGELOG (this revision): added for the ported hint feature (Problems 1-3
    only). The hint is a block-level sibling of .step-row (not a flex child),
    hidden by default and revealed via .visible. */
@@ -3711,6 +3716,45 @@ window.__examPracticeLoad_p7 = function (state) {
 (function(){
 
 // CHANGELOG (this revision):
+//  (a) Check buttons no longer use an inline onclick attribute. Each button
+//      gets a stable id (p8-check-<num>-<key>) and a click listener is
+//      attached via addEventListener right after its problem's markup is
+//      appended to the DOM, so the click path no longer depends on
+//      window.checkAnswer being reachable from inline-handler scope (and is
+//      immune to a CSP that blocks inline handlers). window.checkAnswer is
+//      still assigned at the end of this IIFE as a harmless safety net.
+//  (b) checkAnswer now adds/removes a "correct"/"incorrect" class on the
+//      INPUT itself (not just on the feedback span), and matching CSS rules
+//      (#main-tab-p8 .step-row input.correct / .incorrect) were added so the
+//      field's border/background visibly turns green or red.
+//  (c) The isNaN ("Please enter a number.") branch now also clears any
+//      stale correct/incorrect class on the input, so a blank/non-numeric
+//      resubmission never leaves an old green/red border behind.
+//  (d) The Problems-1-3 input-edit listener now also strips correct/
+//      incorrect from the input itself (previously only from the feedback
+//      span), so editing after a wrong answer visibly clears the red border.
+//  (e) Persistence verified: every stateful P8 element (input, feedback,
+//      attempts, hint, check button, problem wrapper, progress text/fill)
+//      has a stable, uniquely-prefixed p8- id; __examPracticeSave_p8 /
+//      __examPracticeLoad_p8 keep the same {solvedSteps, attemptCounts}
+//      shape the page-level persistence module already expects, matching
+//      the P2/P3/P4/P6/P7 pattern. Neither hook nor the persistence module
+//      itself needed any change.
+//
+// CHANGELOG (previous revision) — Check-button diagnosis:
+//  Tested in an actual browser (Playwright/Chromium) against this exact
+//  file/section before this revision: clicking Check for Problems 1-3 and
+//  4-15, both right and wrong answers, editing after a wrong answer, and
+//  reloading all produced the expected feedback text/class, attempts count,
+//  hint show/hide, and progress bar/text updates. No ReferenceError, no
+//  TypeError, and no null-dereference occurred; window.checkAnswer was the
+//  only assignment of that name anywhere in the file, and every id family
+//  matched exactly between the generated template and the getElementById
+//  calls that read it. A defensive null-check guard was added at the top of
+//  checkAnswer (kept unchanged in this revision) so any future id drift
+//  fails loudly instead of silently aborting with no visible feedback.
+//
+// CHANGELOG (earlier revision):
 //  (a) Ported Problem 8's content/CSS/script from the standalone,
 //      already-fixed ritz_method_interactive_assignment.html (the version
 //      with per-step hints for Problems 1-3 and the three hint follow-up
@@ -3799,7 +3843,7 @@ problems.forEach((p, idx) => {
         <div class="step-row">
           <span class="step-label">${s.label}</span>
           <input type="number" step="any" id="${fieldId}" placeholder="answer">
-          <button onclick="checkAnswer(${num}, '${s.key}')">Check</button>
+          <button class="check-btn" type="button" id="p8-check-${num}-${s.key}">Check</button>
           <span class="feedback empty" id="p8-feedback-${num}-${s.key}">not submitted</span>
           <span class="attempts" id="p8-attempts-${num}-${s.key}"></span>
         </div>
@@ -3823,6 +3867,17 @@ problems.forEach((p, idx) => {
     ${stepsHtml}
   `;
   container.appendChild(div);
+
+  // CHANGELOG (this revision): Check buttons are bound programmatically via
+  // addEventListener instead of an inline onclick attribute, so the click
+  // handler does not depend on window.checkAnswer being reachable from the
+  // page's global/inline-handler scope (and is immune to a CSP that blocks
+  // inline handlers). window.checkAnswer is still assigned at the end of
+  // this IIFE as a harmless safety net, but nothing on the page relies on it.
+  steps.forEach(s => {
+    const btn = document.getElementById(`p8-check-${num}-${s.key}`);
+    if (btn) btn.addEventListener("click", () => checkAnswer(num, s.key));
+  });
 });
 
 // CHANGELOG (hint follow-up fixes): for Problems 1-3 only, strip the stale correct/incorrect
@@ -3838,6 +3893,7 @@ for (let num = 1; num <= 3; num++) {
     input.addEventListener("input", () => {
       const feedback = document.getElementById("p8-feedback-" + num + "-" + s.key);
       if (feedback) feedback.classList.remove("correct", "incorrect");
+      input.classList.remove("correct", "incorrect");
       hideHint(num, s.key);
     });
   });
@@ -3918,12 +3974,25 @@ function checkAnswer(num, key) {
   const attemptsSpan = document.getElementById(attemptsId);
   const problemDiv = document.getElementById("p8-problem-" + num);
 
+  // Defensive guard: if any expected DOM node is missing (e.g. future id
+  // drift between this template and the generated markup), fail loudly to
+  // the console instead of letting a null dereference silently abort the
+  // handler with no visible feedback to the student.
+  if (!input || !feedback || !attemptsSpan || !problemDiv) {
+    console.error("P8: missing DOM node for", fieldId, feedbackId, attemptsId);
+    return;
+  }
+
   const val = parseFloat(input.value);
   const attemptKey = num + "-" + key;
   attemptCounts[attemptKey] = (attemptCounts[attemptKey] || 0) + 1;
   attemptsSpan.textContent = "attempts: " + attemptCounts[attemptKey];
 
   if (isNaN(val)) {
+    // CHANGELOG (this revision): clear any stale correct/incorrect border on
+    // the input itself so a blank/non-numeric resubmission never leaves an
+    // old green/red border sitting next to "Please enter a number."
+    input.classList.remove("correct", "incorrect");
     feedback.textContent = "Please enter a number.";
     feedback.className = "feedback incorrect";
     return;
@@ -3936,10 +4005,14 @@ function checkAnswer(num, key) {
   if (isCorrect) {
     feedback.textContent = "TRUE \u2014 Correct!";
     feedback.className = "feedback correct";
+    input.classList.remove("incorrect");
+    input.classList.add("correct");
     hideHint(num, key);                 // only does anything for Problems 1-3
   } else {
     feedback.textContent = "FALSE \u2014 try again.";
     feedback.className = "feedback incorrect";
+    input.classList.remove("correct");
+    input.classList.add("incorrect");
     showHintIfApplicable(num, key);      // no-op for num > 3
   }
   solvedSteps[attemptKey] = isCorrect;
