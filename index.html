@@ -1177,7 +1177,7 @@
 #main-tab-p8 .note { font-size: 14px; color: #555; margin-top: 10px; font-family: Arial, sans-serif; }
 #main-tab-p8 sup { font-size: 0.75em; }
 #main-tab-p8 sub { font-size: 0.7em; }
-#main-tab-p8 #progress-bar-wrap {
+#main-tab-p8 #p8-progress-bar-wrap {
     position: sticky;
     top: 0;
     background: #fafaf8;
@@ -1186,19 +1186,19 @@
     z-index: 5;
     font-family: Arial, sans-serif;
   }
-#main-tab-p8 #progress-bar-wrap .track {
+#main-tab-p8 #p8-progress-bar-wrap .track {
     background: #e3e3dd;
     border-radius: 8px;
     height: 14px;
     overflow: hidden;
   }
-#main-tab-p8 #progress-bar-wrap .fill {
+#main-tab-p8 #p8-progress-bar-wrap .fill {
     background: #3a7d44;
     height: 100%;
     width: 0%;
     transition: width 0.3s ease;
   }
-#main-tab-p8 #progress-text { font-size: 14px; margin-top: 6px; color: #333; }
+#main-tab-p8 #p8-progress-text { font-size: 14px; margin-top: 6px; color: #333; }
 #main-tab-p8 .problem {
     border: 1px solid #ccc;
     border-radius: 8px;
@@ -1216,6 +1216,7 @@
   }
 #main-tab-p8 .given-table td { padding: 2px 10px 2px 0; vertical-align: top; }
 #main-tab-p8 .given-table td.key { font-weight: bold; white-space: nowrap; }
+#main-tab-p8 .step-block { margin: 8px 0; }
 #main-tab-p8 .step-row {
     display: flex;
     align-items: center;
@@ -1259,6 +1260,21 @@
 #main-tab-p8 .feedback.incorrect { color: #b5432c; }
 #main-tab-p8 .feedback.empty { color: #888; font-weight: normal; }
 #main-tab-p8 .attempts { font-size: 11px; color: #777; }
+/* CHANGELOG (this revision): added for the ported hint feature (Problems 1-3
+   only). The hint is a block-level sibling of .step-row (not a flex child),
+   hidden by default and revealed via .visible. */
+#main-tab-p8 .hint {
+    display: none;
+    font-size: 13px;
+    font-style: italic;
+    color: #6b6b5e;
+    background: #fbf8ec;
+    border: 1px dashed #d8d2b8;
+    border-radius: 4px;
+    padding: 6px 10px;
+    margin: 4px 0 8px 0;
+  }
+#main-tab-p8 .hint.visible { display: block; }
 
 /* SCORE CHANGELOG (this revision) — Fix C: removed the
    #main-tab-p8 #p8-progress-bar-wrap { display: none; } rule that hid
@@ -3694,6 +3710,45 @@ window.__examPracticeLoad_p7 = function (state) {
   <script>
 (function(){
 
+// CHANGELOG (this revision):
+//  (a) Ported Problem 8's content/CSS/script from the standalone,
+//      already-fixed ritz_method_interactive_assignment.html (the version
+//      with per-step hints for Problems 1-3 and the three hint follow-up
+//      fixes below), replacing the earlier (pre-hints) ported version of
+//      this IIFE.
+//  (b) Still IIFE-wrapped, as before, to avoid colliding with P5/P6/P7's
+//      top-level names (problems, steps, container, etc.).
+//  (c) window.checkAnswer and the __examPracticeSave_p8 / __examPracticeLoad_p8
+//      hooks (used by the page-level persistence module) are preserved
+//      unchanged from the prior port — solvedSteps/attemptCounts keep the
+//      same shape, so no changes were needed there.
+//  (d) All three previously-validated hint fixes are preserved in this port:
+//      the input listener only strips stale correct/incorrect styling (it
+//      no longer overwrites the feedback text); the .hint element is a
+//      block-level sibling of .step-row (not a flex child); and the Step 1
+//      (KU) hint uses a real <sup> for the exponent, rendered via innerHTML.
+//  All ids were kept p8-prefixed (p8-problems-container, p8-problem-N,
+//  p8-input-N-key, p8-feedback-N-key, p8-attempts-N-key, p8-hint-N-key,
+//  p8-progress-text, p8-progress-fill) to match the existing convention in
+//  this file and avoid collisions with P1-P7.
+
+// CHANGELOG (hint follow-up fixes):
+//  1. The per-field `input` listener (Problems 1-3 only) no longer overwrites the feedback
+//     text with "not submitted" on every keystroke. It now only strips the stale
+//     correct/incorrect styling class and hides the hint, leaving the last verdict text
+//     ("TRUE — Correct!" / "FALSE — try again.") visible until the student clicks Check again.
+//  2. The `.hint` element was moved out of the flex `.step-row` container into a block-level
+//     `.step-block` wrapper (as a sibling of `.step-row`), and its CSS no longer relies on
+//     `flex: 1 1 100%` to force a line break — it is a plain block, hidden by default and
+//     shown via the `.visible` class. `showHintIfApplicable` / `hideHint` still target the
+//     same `#hint-<num>-<key>` id, so no change was needed in `checkAnswer`.
+//  3. The literal `L^(2n-1)` substring in the Step 1 (KU) hint strings is now written as
+//     `L<sup>2n-1</sup>` and rendered via `hintEl.innerHTML` (previously `textContent`) so the
+//     exponent displays as a real superscript instead of a caret. Hint text is hand-authored
+//     (no user input), so innerHTML is safe here.
+// No other behavior changed: problems[], steps[], updateProgress(), solvedSteps/attemptCounts,
+// the all-correct highlighting, and Problems 4-15 are all untouched.
+
 // ---- Problem data ----
 // KU = coefficient of a^2 in U(a);  KW = coefficient of a in W(a);
 // a = solved coefficient;  strain/stress evaluated at x = L, with E = 100
@@ -3740,12 +3795,15 @@ problems.forEach((p, idx) => {
   steps.forEach(s => {
     const fieldId = "p8-input-" + num + "-" + s.key;
     stepsHtml += `
-      <div class="step-row">
-        <span class="step-label">${s.label}</span>
-        <input type="number" step="any" id="${fieldId}" placeholder="answer">
-        <button onclick="checkAnswer(${num}, '${s.key}')">Check</button>
-        <span class="feedback empty" id="p8-feedback-${num}-${s.key}">not submitted</span>
-        <span class="attempts" id="p8-attempts-${num}-${s.key}"></span>
+      <div class="step-block">
+        <div class="step-row">
+          <span class="step-label">${s.label}</span>
+          <input type="number" step="any" id="${fieldId}" placeholder="answer">
+          <button onclick="checkAnswer(${num}, '${s.key}')">Check</button>
+          <span class="feedback empty" id="p8-feedback-${num}-${s.key}">not submitted</span>
+          <span class="attempts" id="p8-attempts-${num}-${s.key}"></span>
+        </div>
+        <div class="hint" id="p8-hint-${num}-${s.key}"></div>
       </div>`;
   });
 
@@ -3767,7 +3825,88 @@ problems.forEach((p, idx) => {
   container.appendChild(div);
 });
 
+// CHANGELOG (hint follow-up fixes): for Problems 1-3 only, strip the stale correct/incorrect
+// styling class and hide the hint when the student edits a field after submitting. This no
+// longer overwrites the feedback text itself (fix: the previous verdict text stays visible
+// until the student clicks Check again). Scoped strictly to num 1-3 so Problems 4-15 (and
+// P1-P7 elsewhere on the page) are untouched.
+for (let num = 1; num <= 3; num++) {
+  steps.forEach(s => {
+    const fieldId = "p8-input-" + num + "-" + s.key;
+    const input = document.getElementById(fieldId);
+    if (!input) return;
+    input.addEventListener("input", () => {
+      const feedback = document.getElementById("p8-feedback-" + num + "-" + s.key);
+      if (feedback) feedback.classList.remove("correct", "incorrect");
+      hideHint(num, s.key);
+    });
+  });
+}
+
 const attemptCounts = {};
+
+// Hand-written, per-step guidance for Problems 1-3 (n = 1 in all three).
+// Keyed by problem number (1-3) then step key (KU, KW, a, strain, stress).
+const hints = {
+  1: {
+    KU: "U(a)/a\u00B2 = \u00BD\u00B7EA\u00B7\u222B\u2080\u1D38 (n\u00B7x\u207F\u207B\u00B9)\u00B2 dx = \u00BD\u00B7EA\u00B7n\u00B2\u00B7L<sup>2n\u22121</sup>/(2n\u22121). " +
+        "With n = 1, L = 8: \u00BD\u00B71\u00B71\u00B2\u00B78\u00B9/1 = 4.",
+    KW: "W(a)/a = \u222B\u2080\u1D38 q(x)\u00B7x\u207F dx + P\u00B7L\u2080\u207F, with P = 10. " +
+        "Here \u222B\u2080\u2078 (12 \u2212 2x)\u00B7x dx + 10\u00B72 = [6x\u00B2 \u2212 (2/3)x\u00B3]\u2080\u2078 + 20 = 128 \u2212 85.333 + 20 \u2248 62.667.",
+    a:  "Set d\u03A0/da = 0 \u2192 2\u00B7KU\u00B7a \u2212 KW = 0 \u2192 a = KW / (2\u00B7KU). " +
+        "Here a = 62.667 / (2\u00B74) \u2248 7.833.",
+    strain: "\u03B5(x) = u\u2019(x) = n\u00B7a\u00B7x\u207F\u207B\u00B9, evaluated at x = L. " +
+        "Here \u03B5(L) = 1\u00B77.833\u00B78\u2070 \u2248 7.833 (same as a, since n = 1 makes x\u207F\u207B\u00B9 = x\u2070 = 1).",
+    stress: "\u03C3(L) = E\u00B7\u03B5(L), with E = 100. " +
+        "Here \u03C3(L) = 100\u00B77.833 \u2248 783.3."
+  },
+  2: {
+    KU: "U(a)/a\u00B2 = \u00BD\u00B7EA\u00B7\u222B\u2080\u1D38 (n\u00B7x\u207F\u207B\u00B9)\u00B2 dx = \u00BD\u00B7EA\u00B7n\u00B2\u00B7L<sup>2n\u22121</sup>/(2n\u22121). " +
+        "With n = 1, L = 6: \u00BD\u00B71\u00B71\u00B2\u00B76\u00B9/1 = 3.",
+    KW: "W(a)/a = \u222B\u2080\u1D38 q(x)\u00B7x\u207F dx + P\u00B7L\u2080\u207F, with P = 10. " +
+        "Here \u222B\u2080\u2076 4x\u00B2\u00B7x dx + 10\u00B72 = \u222B\u2080\u2076 4x\u00B3 dx + 20 = 1296 + 20 = 1316.",
+    a:  "Set d\u03A0/da = 0 \u2192 a = KW / (2\u00B7KU). " +
+        "Here a = 1316 / (2\u00B73) \u2248 219.33.",
+    strain: "\u03B5(x) = u\u2019(x) = n\u00B7a\u00B7x\u207F\u207B\u00B9, evaluated at x = L. " +
+        "Here \u03B5(L) = 1\u00B7219.33\u00B76\u2070 \u2248 219.33.",
+    stress: "\u03C3(L) = E\u00B7\u03B5(L), with E = 100. " +
+        "Here \u03C3(L) = 100\u00B7219.33 \u2248 21933.3."
+  },
+  3: {
+    KU: "U(a)/a\u00B2 = \u00BD\u00B7EA\u00B7\u222B\u2080\u1D38 (n\u00B7x\u207F\u207B\u00B9)\u00B2 dx = \u00BD\u00B7EA\u00B7n\u00B2\u00B7L<sup>2n\u22121</sup>/(2n\u22121). " +
+        "With n = 1, L = 8: \u00BD\u00B71\u00B71\u00B2\u00B78\u00B9/1 = 4.",
+    KW: "W(a)/a = \u222B\u2080\u1D38 q(x)\u00B7x\u207F dx + P\u00B7L\u2080\u207F, with P = 10. " +
+        "Here \u222B\u2080\u2078 2x\u00B3\u00B7x dx + 10\u00B74 = \u222B\u2080\u2078 2x\u2074 dx + 40 = 13107.2 + 40 = 13147.2.",
+    a:  "Set d\u03A0/da = 0 \u2192 a = KW / (2\u00B7KU). " +
+        "Here a = 13147.2 / (2\u00B74) = 1643.4.",
+    strain: "\u03B5(x) = u\u2019(x) = n\u00B7a\u00B7x\u207F\u207B\u00B9, evaluated at x = L. " +
+        "Here \u03B5(L) = 1\u00B71643.4\u00B78\u2070 = 1643.4.",
+    stress: "\u03C3(L) = E\u00B7\u03B5(L), with E = 100. " +
+        "Here \u03C3(L) = 100\u00B71643.4 = 164340."
+  }
+};
+
+function hintFor(num, key) {
+  return (hints[num] && hints[num][key]) ? hints[num][key] : "";
+}
+
+function showHintIfApplicable(num, key) {
+  if (num > 3) return; // only Problems 1-3 get hints
+  const hintEl = document.getElementById("p8-hint-" + num + "-" + key);
+  if (!hintEl) return;
+  const text = hintFor(num, key);
+  if (!text) return;
+  hintEl.innerHTML = "Hint: " + text;
+  hintEl.classList.add("visible");
+}
+
+function hideHint(num, key) {
+  if (num > 3) return; // no-op for Problems 4-15
+  const hintEl = document.getElementById("p8-hint-" + num + "-" + key);
+  if (!hintEl) return;
+  hintEl.textContent = "";
+  hintEl.classList.remove("visible");
+}
 
 function checkAnswer(num, key) {
   const idx = num - 1;
@@ -3797,9 +3936,11 @@ function checkAnswer(num, key) {
   if (isCorrect) {
     feedback.textContent = "TRUE \u2014 Correct!";
     feedback.className = "feedback correct";
+    hideHint(num, key);                 // only does anything for Problems 1-3
   } else {
     feedback.textContent = "FALSE \u2014 try again.";
     feedback.className = "feedback incorrect";
+    showHintIfApplicable(num, key);      // no-op for num > 3
   }
   solvedSteps[attemptKey] = isCorrect;
 
@@ -3827,10 +3968,11 @@ function updateProgress() {
 
 window.checkAnswer = checkAnswer;
 
-// CHANGELOG (this revision) — Fix #22: expose semantic scoring state
-// (solvedSteps and attemptCounts, which updateProgress actually reads)
-// to the page-level persistence module, so a reload restores the
-// running progress bar/text, not just each input's DOM styling/value.
+// CHANGELOG (this revision) — Fix #22 (carried over unchanged): expose
+// semantic scoring state (solvedSteps and attemptCounts, which
+// updateProgress actually reads) to the page-level persistence module, so
+// a reload restores the running progress bar/text, not just each input's
+// DOM styling/value.
 window.__examPracticeSave_p8 = function () {
   return {
     solvedSteps: Object.assign({}, solvedSteps),
